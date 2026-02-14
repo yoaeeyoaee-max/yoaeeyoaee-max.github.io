@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zen3hub • neon kék & fekete</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+    }
+
+    body {
+      background-color: #000000;
+      color: #0a2fff; /* neon sötétkék */
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* neon glow effekt */
+    .neon-text {
+      text-shadow: 0 0 5px #0a2fff, 0 0 10px #0a2fff;
+    }
+    .neon-border {
+      box-shadow: 0 0 5px #0a2fff, 0 0 10px #0a2fff;
+      border: 1px solid #0a2fff;
+    }
+    button, .btn {
+      background: transparent;
+      color: #0a2fff;
+      border: 1px solid #0a2fff;
+      padding: 8px 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 0 5px #0a2fff;
+    }
+    button:hover, .btn:hover {
+      background: #0a2fff;
+      color: black;
+      box-shadow: 0 0 15px #0a2fff;
+    }
+    a {
+      color: #0a2fff;
+      text-decoration: none;
+      border-bottom: 1px dashed #0a2fff;
+    }
+    a:hover {
+      text-shadow: 0 0 8px #0a2fff;
+    }
+
+    /* header rész */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 30px;
+      border-bottom: 2px solid #0a2fff;
+      box-shadow: 0 0 15px #0a2fff;
+      background: #000000;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .logo {
+      width: 60px;
+      height: 60px;
+      background: black;
+      border: 3px solid #0a2fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 900;
+      color: #0a2fff;
+      box-shadow: 0 0 20px #0a2fff;
+      animation: spinOnce 1.5s ease-in-out 1 forwards;
+    }
+
+    @keyframes spinOnce {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .welcome-message {
+      font-size: 1.5rem;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #0a2fff;
+      text-shadow: 0 0 10px #0a2fff;
+    }
+
+    /* hamburger gomb */
+    .hamburger {
+      width: 40px;
+      height: 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      z-index: 200;
+    }
+    .hamburger span {
+      height: 4px;
+      width: 100%;
+      background-color: #0a2fff;
+      border-radius: 10px;
+      box-shadow: 0 0 8px #0a2fff;
+      transition: 0.3s;
+    }
+
+    /* oldalsó menü (hamburger) */
+    .side-menu {
+      position: fixed;
+      top: 0;
+      right: -300px;
+      width: 260px;
+      height: 100vh;
+      background: #000000;
+      border-left: 3px solid #0a2fff;
+      box-shadow: -5px 0 25px #0a2fff;
+      padding: 100px 20px 30px;
+      transition: right 0.4s ease;
+      z-index: 150;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+    .side-menu.active {
+      right: 0;
+    }
+    .side-menu a, .side-menu button {
+      background: transparent;
+      border: none;
+      color: #0a2fff;
+      font-size: 1.4rem;
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid #0a2fff;
+      width: 100%;
+      cursor: pointer;
+      box-shadow: none;
+    }
+    .side-menu a:hover, .side-menu button:hover {
+      background: #0a2fff22;
+    }
+
+    /* fő tartalom */
+    .main-content {
+      flex: 1;
+      padding: 30px 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* szekciók */
+    .section {
+      display: none;
+    }
+    .section.active-section {
+      display: block;
+    }
+
+    /* discord gomb */
+    .discord-btn {
+      display: inline-block;
+      background: transparent;
+      border: 2px solid #0a2fff;
+      color: #0a2fff;
+      font-size: 1.8rem;
+      padding: 20px 40px;
+      margin: 30px 0;
+      text-transform: uppercase;
+      font-weight: bold;
+      box-shadow: 0 0 25px #0a2fff;
+      transition: 0.2s;
+    }
+    .discord-btn:hover {
+      background: #0a2fff;
+      color: black;
+    }
+
+    /* shop termék grid */
+    .shop-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 25px;
+      margin-top: 30px;
+    }
+    .product-card {
+      border: 1px solid #0a2fff;
+      padding: 15px;
+      background: #0a0a0a;
+      box-shadow: 0 0 12px #0a2fff;
+      text-align: center;
+    }
+    .product-card img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border: 1px solid #0a2fff;
+      background: #111;
+    }
+    .product-card h3 {
+      font-size: 1.4rem;
+      margin: 10px 0;
+    }
+    .product-card p {
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+    .product-card button {
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    /* admin form */
+    .admin-form {
+      border: 2px solid #0a2fff;
+      padding: 25px;
+      margin-bottom: 40px;
+      background: #0b0b0b;
+    }
+    .admin-form input {
+      background: black;
+      border: 1px solid #0a2fff;
+      color: #0a2fff;
+      padding: 10px;
+      width: 100%;
+      margin-bottom: 15px;
+      font-size: 1rem;
+    }
+    .admin-form label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    /* kosár modal */
+    .cart-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: #000000;
+      border: 3px solid #0a2fff;
+      box-shadow: 0 0 50px #0a2fff;
+      padding: 30px;
+      width: 90%;
+      max-width: 500px;
+      z-index: 300;
+      opacity: 0;
+      visibility: hidden;
+      transition: 0.2s;
+    }
+    .cart-modal.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .cart-overlay {
+      position: fixed;
+      top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 299;
+      opacity: 0;
+      visibility: hidden;
+      transition:0.2s;
+    }
+    .cart-overlay.show {
+      opacity:1;
+      visibility:visible;
+    }
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #0a2fff;
+      padding: 10px 0;
+    }
+
+    /* kontakt / about */
+    .support-box {
+      border: 2px solid #0a2fff;
+      padding: 25px;
+      margin: 30px 0;
+      background: #0c0c0c;
+    }
+    .tiktok-link {
+      font-size: 2rem;
+      display: inline-block;
+      margin: 20px 0;
+      border: 2px solid #0a2fff;
+      padding: 15px 30px;
+    }
+
+    /* footer */
+    footer {
+      text-align: center;
+      padding: 20px;
+      border-top: 1px solid #0a2fff;
+      color: #0a2fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- header forgó logóval és hamburgerrel -->
+    <div class="header">
+      <div class="logo-container">
+        <div class="logo" id="spinningLogo">Z3</div>
+        <div class="welcome-message" id="welcomeMsg"></div>
+      </div>
+      <div class="hamburger" id="hamburgerBtn">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+
+    <!-- oldalsó hamburger menü -->
+    <div class="side-menu" id="sideMenu">
+      <a href="#" data-section="home">🏠 KEZDŐLAP</a>
+      <a href="#" data-section="shop">🛒 SHOP</a>
+      <a href="#" data-section="about">📋 ABOUT / CONTACT</a>
+      <a href="#" id="tiktokLink" target="_blank">📱 FOLLOW US ON TIKTOK</a>
+      <button id="adminLoginBtn">🔐 ADMIN LOGIN</button>
+      <button id="logoutBtn" style="display:none;">🚪 LOGOUT</button>
+      <div style="margin-top:20px; font-size:0.9rem;">➡️ use web without reg.</div>
+    </div>
+
+    <!-- fő tartalom: szekciók -->
+    <div class="main-content">
+      <!-- HOME szekció (alapértelmezett) -->
+      <div id="home-section" class="section active-section">
+        <h1 class="neon-text">ÜDVÖZÖL A ZEN3HUB</h1>
+        <p>Fekete és neon sötétkék világ – csatlakozz a szerverünkhöz!</p>
+        <a href="https://discord.gg/VS9HyQRxda" target="_blank" class="discord-btn">🔷 JOIN OUR DISCORD 🔷</a>
+        <div style="margin-top: 50px;">
+          <p>⚡ A Discord szerveren ticket nyitással tudsz fizetni és supportot kérni.</p>
+          <p>📌 Használd a hamburger menüt a shop és egyéb oldalak eléréséhez.</p>
+        </div>
+      </div>
+
+      <!-- SHOP szekció -->
+      <div id="shop-section" class="section">
+        <h2>🛍️ SHOP</h2>
+        <!-- admin feltöltő rész (csak adminnak látszik) -->
+        <div id="adminPanel" style="display: none;" class="admin-form">
+          <h3>➕ Admin termék feltöltés</h3>
+          <label>Termék név</label>
+          <input type="text" id="productName" placeholder="pl. Zen3Hub póló">
+          <label>Ár (€ vagy Ft)</label>
+          <input type="text" id="productPrice" placeholder="9999">
+          <label>Kép URL (opcionális)</label>
+          <input type="text" id="productImage" placeholder="https://...">
+          <button id="addProductBtn">Termék hozzáadása</button>
+        </div>
+
+        <!-- termékek grid -->
+        <div id="shopGrid" class="shop-grid"></div>
+
+        <!-- go to cart gomb -->
+        <div style="margin-top: 40px; display: flex; gap:20px; align-items:center;">
+          <button id="viewCartBtn">🛒 GO TO CART 🛒</button>
+          <span id="cartCount">(0)</span>
+        </div>
+      </div>
+
+      <!-- ABOUT / CONTACT szekció -->
+      <div id="about-section" class="section">
+        <h2>📬 ABOUT US & CONTACT</h2>
+        <div class="support-box">
+          <h3>🔹 RÓLUNK</h3>
+          <p>A Zen3Hub egy közösség, ahol a játék és a technológia találkozik. Fekete és neon kék, minimalista design.</p>
+          <h3 style="margin-top: 25px;">🛠️ SUPPORT / MODERÁTOROK</h3>
+          <p>Ha segítségre van szükséged, a moderátorok itt vannak neked a weben is! Nyiss egy tickett a Discord szerverünkön, vagy írj az alábbi űrlapon (demonstráció: support@zen3hub.hu).</p>
+          <p>✉️ <strong>email:</strong> support@zen3hub.hu (csak példa)</p>
+          <p>💬 Discord: <a href="https://discord.gg/VS9HyQRxda" target="_blank">https://discord.gg/VS9HyQRxda</a></p>
+        </div>
+        <div>
+          <a href="#" id="tiktokAbout" class="tiktok-link">📱 FOLLOW US ON TIKTOK @zen3hub</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- kosár modal -->
+    <div class="cart-overlay" id="cartOverlay"></div>
+    <div class="cart-modal" id="cartModal">
+      <h2>🧾 KOSARAD</h2>
+      <div id="cartItemsContainer"></div>
+      <div style="margin-top: 25px; display: flex; gap:15px; flex-wrap:wrap;">
+        <button id="payBtn">💳 FIZETÉS</button>
+        <button id="closeCartBtn">✖️ BEZÁR</button>
+      </div>
+      <p id="payMessage" style="margin-top:20px; color:#0a2fff; font-weight:bold;"></p>
+    </div>
+
+    <footer>
+      © 2025 Zen3hub – neon sötétkék / fekete | design: forog a logo, vá r a szöveg
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      // ========== KONFIGURÁCIÓ ==========
+      const ADMIN_EMAILS = ['owner@zen3hub.com', 'admin@zen3hub.com']; // csak ezek az emailek adminok
+      const DISCORD_INVITE = 'https://discord.gg/VS9HyQRxda';
+
+      // ========== ADATOK ==========
+      let items = [];               // terméklista
+      let cart = [];                // kosár tartalma
+      let isAdmin = false;          // admin jogosultság
+
+      // localStorageből betöltés, ha van
+      try {
+        const saved = localStorage.getItem('zen3hub_items');
+        if (saved) items = JSON.parse(saved);
+        else {
+          // néhány alap termék a bemutatóhoz
+          items = [
+            { id: Date.now()+1, name: 'Neon kék póló', price: '5990', image: 'https://placehold.co/300x200/0a2fff/000?text=Z3+polo' },
+            { id: Date.now()+2, name: 'Fekete sapka', price: '3990', image: 'https://placehold.co/300x200/000/0a2fff?text=Z3+cap' },
+            { id: Date.now()+3, name: 'Matrica szett', price: '1290', image: 'https://placehold.co/300x200/0a2fff/000?text=sticker' }
+          ];
+        }
+      } catch (e) { items = []; }
+
+      // ========== DOM elemek ==========
+      const spinningLogo = document.getElementById('spinningLogo');
+      const welcomeMsg = document.getElementById('welcomeMsg');
+      const hamburger = document.getElementById('hamburgerBtn');
+      const sideMenu = document.getElementById('sideMenu');
+      const sections = document.querySelectorAll('.section');
+      const homeSection = document.getElementById('home-section');
+      const shopSection = document.getElementById('shop-section');
+      const aboutSection = document.getElementById('about-section');
+      const adminPanel = document.getElementById('adminPanel');
+      const adminLoginBtn = document.getElementById('adminLoginBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const shopGrid = document.getElementById('shopGrid');
+      const cartCountSpan = document.getElementById('cartCount');
+      const viewCartBtn = document.getElementById('viewCartBtn');
+      const cartModal = document.getElementById('cartModal');
+      const cartOverlay = document.getElementById('cartOverlay');
+      const cartItemsContainer = document.getElementById('cartItemsContainer');
+      const closeCartBtn = document.getElementById('closeCartBtn');
+      const payBtn = document.getElementById('payBtn');
+      const payMessage = document.getElementById('payMessage');
+      const tiktokLink = document.getElementById('tiktokLink');
+      const tiktokAbout = document.getElementById('tiktokAbout');
+
+      // ========== FORGÓ LOGO UTÁNI ÜZENET ==========
+      spinningLogo.addEventListener('animationend', function() {
+        welcomeMsg.textContent = 'WELCOME TO ZEN3HUB';
+      });
+
+      // ========== HAMBURGER MENÜ ==========
+      hamburger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sideMenu.classList.toggle('active');
+      });
+      // kattintásra bezár (pl. ha linkre nyom)
+      document.addEventListener('click', (e) => {
+        if (!sideMenu.contains(e.target) && !hamburger.contains(e.target)) {
+          sideMenu.classList.remove('active');
+        }
+      });
+
+      // ========== SZEKCIÓ VÁLTÁS ==========
+      function showSection(sectionId) {
+        sections.forEach(sec => sec.classList.remove('active-section'));
+        document.getElementById(sectionId).classList.add('active-section');
+        sideMenu.classList.remove('active'); // menü bezár
+      }
+
+      // menü linkek
+      document.querySelectorAll('[data-section]').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const section = link.dataset.section;
+          if (section === 'home') showSection('home-section');
+          if (section === 'shop') { showSection('shop-section'); renderShop(); }
+          if (section === 'about') showSection('about-section');
+        });
+      });
+
+      // TikTok linkek (ugyanaz)
+      function tiktokClick(e) {
+        e.preventDefault();
+        window.open('https://www.tiktok.com/@zen3hub', '_blank');
+      }
+      tiktokLink.addEventListener('click', tiktokClick);
+      tiktokAbout.addEventListener('click', tiktokClick);
+
+      // ========== ADMIN LOGIN/LOGOUT ==========
+      adminLoginBtn.addEventListener('click', () => {
+        const email = prompt('Add meg az admin email címed: (owner@zen3hub.com / admin@zen3hub.com)');
+        if (email && ADMIN_EMAILS.includes(email.trim().toLowerCase())) {
+          isAdmin = true;
+          alert('Sikeres admin belépés! Most már tölthetsz fel termékeket.');
+          adminPanel.style.display = 'block';
+          adminLoginBtn.style.display = 'none';
+          logoutBtn.style.display = 'block';
+          renderShop(); // admin form mutatása
+        } else {
+          alert('Nincs admin jogosultságod, vagy rossz email.');
+        }
+      });
+
+      logoutBtn.addEventListener('click', () => {
+        isAdmin = false;
+        adminPanel.style.display = 'none';
+        adminLoginBtn.style.display = 'block';
+        logoutBtn.style.display = 'none';
+        renderShop();
+      });
+
+      // ========== TERMÉKEK MEGJELENÍTÉSE SHOPBAN ==========
+      function renderShop() {
+        let html = '';
+        items.forEach(item => {
+          html += `
+            <div class="product-card" data-id="${item.id}">
+              <img src="${item.image || 'https://placehold.co/300x200/000/0a2fff?text=Z3'}" alt="${item.name}">
+              <h3>${item.name}</h3>
+              <p>${item.price} Ft</p>
+              <button class="add-to-cart-btn">➕ ADD TO CART</button>
+            </div>
+          `;
+        });
+        shopGrid.innerHTML = html;
+
+        // add to cart események
+        document.querySelectorAll('.add-to-cart-btn').forEach((btn, index) => {
+          btn.addEventListener('click', (e) => {
+            const card = e.target.closest('.product-card');
+            const id = Number(card.dataset.id);
+            const product = items.find(i => i.id === id);
+            if (product) {
+              cart.push({ ...product, cartId: Date.now() + Math.random() });
+              updateCartCount();
+              alert(`"${product.name}" kosárba téve!`);
+            }
+          });
+        });
+      }
+
+      // ========== KOSÁR SZÁMLÁLÓ ==========
+      function updateCartCount() {
+        cartCountSpan.innerText = `(${cart.length})`;
+      }
+
+      // ========== KOSÁR MODAL MEGJELENÍTÉS ==========
+      function openCartModal() {
+        // kosár tartalom render
+        let cartHtml = '';
+        if (cart.length === 0) {
+          cartHtml = '<p>Üres a kosarad.</p>';
+        } else {
+          cart.forEach((item, idx) => {
+            cartHtml += `
+              <div class="cart-item">
+                <span>${item.name} (${item.price} Ft)</span>
+                <button class="remove-cart-item" data-cartid="${item.cartId}">✖️</button>
+              </div>
+            `;
+          });
+        }
+        cartItemsContainer.innerHTML = cartHtml;
+        cartModal.classList.add('show');
+        cartOverlay.classList.add('show');
+        payMessage.innerText = ''; // előző üzenet törlés
+
+        // törlés gombok
+        document.querySelectorAll('.remove-cart-item').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const cartId = e.target.dataset.cartid;
+            cart = cart.filter(it => it.cartId != cartId);
+            updateCartCount();
+            openCartModal(); // frissítés
+          });
+        });
+      }
+
+      viewCartBtn.addEventListener('click', openCartModal);
+
+      function closeCartModal() {
+        cartModal.classList.remove('show');
+        cartOverlay.classList.remove('show');
+      }
+      closeCartBtn.addEventListener('click', closeCartModal);
+      cartOverlay.addEventListener('click', closeCartModal);
+
+      // ========== FIZETÉS GOMB ==========
+      payBtn.addEventListener('click', () => {
+        if (cart.length === 0) {
+          payMessage.innerText = '❌ A kosár üres.';
+          return;
+        }
+        payMessage.innerHTML = `🔷 <strong>TO PAY YOU NEED TO OPEN A TICKET IN DISCORD</strong> 🔷<br><a href="${DISCORD_INVITE}" target="_blank" style="color:#0a2fff;">➡️ ${DISCORD_INVITE}</a>`;
+      });
+
+      // ========== ADMIN TERMÉK FELTÖLTÉS ==========
+      document.getElementById('addProductBtn').addEventListener('click', () => {
+        if (!isAdmin) { alert('Csak admin tölthet fel!'); return; }
+        const name = document.getElementById('productName').value.trim();
+        const price = document.getElementById('productPrice').value.trim();
+        const img = document.getElementById('productImage').value.trim() || 'https://placehold.co/300x200/000/0a2fff?text=termek';
+        if (!name || !price) { alert('Név és ár kötelező'); return; }
+        const newItem = {
+          id: Date.now(),
+          name: name,
+          price: price,
+          image: img
+        };
+        items.push(newItem);
+        localStorage.setItem('zen3hub_items', JSON.stringify(items));
+        renderShop();
+        // inputok ürítése
+        document.getElementById('productName').value = '';
+        document.getElementById('productPrice').value = '';
+        document.getElementById('productImage').value = '';
+      });
+
+      // ========== KEZDŐLAP DISCORD GOMB (már benne van a href) ==========
+      // plusz ha bárhol máshol kell, a discord linkeket ellátjuk
+
+      // ========== INDULÁSKOR ==========
+      renderShop();
+      updateCartCount();
+
+      // admin státusz ellenőrzés (nincs session most, de ha korábban nem volt, marad false)
+      // hogy a gombok helyesen jelenjenek meg
+      if (isAdmin) {
+        adminPanel.style.display = 'block';
+        adminLoginBtn.style.display = 'none';
+        logoutBtn.style.display = 'block';
+      } else {
+        adminPanel.style.display = 'none';
+        adminLoginBtn.style.display = 'block';
+        logoutBtn.style.display = 'none';
+      }
+
+      // "use web without registration" funkció szöveg már van a menüben
+      // mindenki számára elérhető a shop kosárral.
+
+      // extra: ha a shop termékre kattint, ne azonnal add to cart, csak a gomb
+      // megfelel a spec-nek: "rá nyom az itemre amit majd feltöltök és akkor legyen egy olyan h add to cart"
+      // (a terméken van add to cart gomb)
+    })();
+  </script>
+</body>
+</html>
