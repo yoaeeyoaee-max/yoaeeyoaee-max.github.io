@@ -191,14 +191,14 @@
       box-shadow: 0 0 15px cyan;
     }
 
-    /* side menu */
+    /* side menu - görgethető verzió */
     .side-menu {
       position: fixed;
       top: 0;
       right: -400px;
       width: 340px;
       height: 100vh;
-      background: rgba(5, 5, 15, 0.95);
+      background: rgba(5, 5, 15, 0.98);
       backdrop-filter: blur(30px);
       border-left: 3px solid magenta;
       padding: 120px 25px 30px;
@@ -208,10 +208,28 @@
       flex-direction: column;
       gap: 15px;
       box-shadow: -20px 0 50px cyan;
+      /* görgetési tulajdonságok */
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: cyan magenta;
     }
     .side-menu.active {
       right: 0;
     }
+    /* testreszabott scrollbar */
+    .side-menu::-webkit-scrollbar {
+      width: 8px;
+    }
+    .side-menu::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+    }
+    .side-menu::-webkit-scrollbar-thumb {
+      background: linear-gradient(cyan, magenta);
+      border-radius: 10px;
+      box-shadow: 0 0 15px cyan;
+    }
+    
     .side-menu a, .side-menu button {
       background: rgba(0,0,0,0.3);
       border: none;
@@ -227,6 +245,7 @@
       align-items: center;
       gap: 15px;
       border: 1px solid transparent;
+      flex-shrink: 0;
     }
     .side-menu a:hover, .side-menu button:hover {
       background: rgba(255,0,255,0.3);
@@ -243,6 +262,7 @@
       text-align: center;
       margin-bottom: 20px;
       box-shadow: 0 0 40px cyan;
+      flex-shrink: 0;
     }
 
     /* main content */
@@ -418,6 +438,11 @@
       color: cyan;
       z-index: 10;
     }
+
+    /* body scroll lock class */
+    body.menu-open {
+      overflow: hidden;
+    }
   </style>
 </head>
 <body>
@@ -561,7 +586,7 @@
 
   <script>
     (function() {
-      // ---------- CONSTANTS ----------
+      // ---------- KONSTANSOK ----------
       const OWNER_EMAIL = 'zen3hubowner.197@zen3hub.com';
       const OWNER_PASS = 'Nmark2007';
       const ADMIN_EMAIL = 'zen3hubadmin.187@zen3hub.com';
@@ -673,6 +698,36 @@
       const videoFileInput = document.getElementById('videoFileInput');
       const saveVideoBtn = document.getElementById('saveVideoBtn');
       const closeVideoBtn = document.getElementById('closeVideoBtn');
+
+      // ---------- MENÜ NYITÁS/ZÁRÁS ÉS GÖRGETÉS LETILTÁSA ----------
+      function openMenu() {
+        sideMenu.classList.add('active');
+        document.body.classList.add('menu-open'); // főoldal görgetés tiltás
+      }
+      function closeMenu() {
+        sideMenu.classList.remove('active');
+        document.body.classList.remove('menu-open'); // főoldal görgetés vissza
+      }
+      function toggleMenu() {
+        if (sideMenu.classList.contains('active')) {
+          closeMenu();
+        } else {
+          openMenu();
+        }
+      }
+
+      // hamburger kattintás
+      hamburger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMenu();
+      });
+
+      // kattintás a menün kívülre (de a menün belüli kattintás ne zárja be)
+      document.addEventListener('click', (e) => {
+        if (!sideMenu.contains(e.target) && !hamburger.contains(e.target) && sideMenu.classList.contains('active')) {
+          closeMenu();
+        }
+      });
 
       // ---------- UI UPDATE ----------
       function updateUI() {
@@ -899,12 +954,6 @@
         reader.readAsDataURL(file);
       });
 
-      // hamburger
-      hamburger.addEventListener('click', () => sideMenu.classList.toggle('active'));
-      document.addEventListener('click', e => {
-        if (!sideMenu.contains(e.target) && !hamburger.contains(e.target)) sideMenu.classList.remove('active');
-      });
-
       // section switch
       document.querySelectorAll('[data-section]').forEach(link => {
         link.addEventListener('click', e => {
@@ -912,7 +961,7 @@
           const sec = link.dataset.section;
           sections.forEach(s => s.classList.remove('active-section'));
           document.getElementById(sec + '-section').classList.add('active-section');
-          sideMenu.classList.remove('active');
+          closeMenu(); // menü bezárás váltáskor
         });
       });
 
