@@ -44,7 +44,7 @@
       backdrop-filter: blur(2px);
     }
 
-    /* 🧬 részecske vászon (opcionális) */
+    /* 🧬 részecske vászon */
     #particle-canvas {
       position: fixed;
       top: 0;
@@ -114,6 +114,9 @@
       border-color: cyan;
       box-shadow: 0 0 30px cyan;
       outline: none;
+    }
+    input[type="file"] {
+      padding: 10px;
     }
 
     /* splash */
@@ -643,7 +646,7 @@
         bgVideo.src = storedVideo;
         bgVideo.load();
       } else {
-        // alap videó (rövid loop) – ha nincs, csak színátmenet
+        // nincs alapértelmezett videó, csak overlay
       }
 
       // ---------- DOM ----------
