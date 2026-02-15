@@ -61,6 +61,12 @@
       margin-bottom: 15px;
       font-size: 1rem;
     }
+    input[type="file"] {
+      padding: 5px;
+      color: #0a2fff;
+      background: #000;
+      border: 1px solid #0a2fff;
+    }
     label {
       display: block;
       margin-bottom: 5px;
@@ -412,8 +418,10 @@
       <h3>➕ Owner: Add product</h3>
       <input type="text" id="productName" placeholder="Product name">
       <input type="text" id="productPrice" placeholder="Price (e.g. 19.99 USD)">
-      <input type="text" id="productImage" placeholder="Image URL (optional)">
+      <label>Product image (select from your computer)</label>
+      <input type="file" id="productImageFile" accept="image/*">
       <button id="addProductBtn">Add product</button>
+      <p style="font-size:0.8rem; margin-top:5px;">Image will be stored in the browser (base64).</p>
     </div>
     <div id="shopGrid" class="shop-grid"></div>
     <div style="margin-top:30px;">
@@ -559,7 +567,7 @@
   const addProductBtn = document.getElementById('addProductBtn');
   const productName = document.getElementById('productName');
   const productPrice = document.getElementById('productPrice');
-  const productImage = document.getElementById('productImage');
+  const productImageFile = document.getElementById('productImageFile');
 
   // Ticket elements
   const ticketMessage = document.getElementById('ticketMessage');
@@ -705,18 +713,34 @@
     renderTickets();
   });
 
-  // ---------- ADD PRODUCT (owner) ----------
+  // ---------- ADD PRODUCT (owner) with image file ----------
   addProductBtn.addEventListener('click', () => {
     if (loggedInUser !== OWNER_EMAIL) { alert('Only owner'); return; }
     const name = productName.value.trim();
     const price = productPrice.value.trim();
     if (!name || !price) { alert('Name and price required'); return; }
-    const img = productImage.value.trim() || 'https://placehold.co/300x200/0a2fff/000?text=product';
-    const newId = Date.now();
-    products.push({ id: newId, name, price, image: img });
-    saveProducts();
-    productName.value = ''; productPrice.value = ''; productImage.value = '';
-    renderShop();
+
+    const file = productImageFile.files[0];
+    if (file) {
+      // If file selected, read as base64
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const imageBase64 = e.target.result;
+        const newId = Date.now();
+        products.push({ id: newId, name, price, image: imageBase64 });
+        saveProducts();
+        productName.value = ''; productPrice.value = ''; productImageFile.value = ''; // clear file input
+        renderShop();
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // No file: use default placeholder
+      const newId = Date.now();
+      products.push({ id: newId, name, price, image: 'https://placehold.co/300x200/0a2fff/000?text=product' });
+      saveProducts();
+      productName.value = ''; productPrice.value = ''; productImageFile.value = '';
+      renderShop();
+    }
   });
 
   // ---------- SAVE ABOUT (owner) ----------
