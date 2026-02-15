@@ -355,14 +355,14 @@
 <!-- login modal -->
 <div class="modal" id="loginModal">
   <h2>🔐 Login / Register</h2>
-  <input type="email" id="loginEmail" placeholder="Email" value="">
+  <input type="email" id="loginEmail" placeholder="Email (any email, e.g. Gmail)" value="">
   <input type="password" id="loginPassword" placeholder="Password" value="">
   <div style="display: flex; gap: 10px; flex-wrap: wrap;">
     <button id="loginBtn">Login</button>
     <button id="registerBtn">Register</button>
     <button id="closeLoginBtn">Close</button>
   </div>
-  <p style="margin-top:15px; font-size:0.9rem;">Use web without login: just browse shop</p>
+  <p style="margin-top:15px; font-size:0.9rem;">Anyone can register with their email (Google etc.)</p>
 </div>
 
 <!-- cart modal -->
@@ -389,6 +389,7 @@
   <a href="#" data-section="shop">🛒 SHOP</a>
   <a href="#" data-section="support">📬 SUPPORT / TICKETS</a>
   <a href="#" data-section="about">📋 ABOUT US</a>
+  <a href="#" id="tiktokMenuLink" target="_blank">📱 FOLLOW US ON TIKTOK @zen3hub4</a>
   <button id="loginMenuBtn">🔑 Login / Register</button>
   <button id="logoutMenuBtn" style="display:none;">🚪 Logout</button>
   <div style="margin-top:20px; font-size:0.8rem;">⚡ Zen3hub · owner system</div>
@@ -444,12 +445,12 @@
     </div>
     <div style="margin-top:30px;">
       <h3>Follow us on TikTok</h3>
-      <a href="https://tiktok.com/@zen3hub" target="_blank" style="font-size:2rem;">📱 @zen3hub</a>
+      <a href="https://tiktok.com/@zen3hub4" target="_blank" style="font-size:2rem;">📱 @zen3hub4</a>
     </div>
   </div>
 </div>
 
-<footer style="text-align:center; padding:20px; border-top:1px solid #0a2fff;">© 2025 Zen3hub · owner: zen3hubowner.197@zen3hub.com</footer>
+<footer style="text-align:center; padding:20px; border-top:1px solid #0a2fff;">© 2025 Zen3hub · TikTok @zen3hub4</footer>
 
 <script>
 (function() {
@@ -458,6 +459,8 @@
   const OWNER_PASS = 'Nmark2007';
   const ADMIN_EMAIL = 'zen3hubadmin.187@zen3hub.com';
   const ADMIN_PASS = 'admin20477393648927392zen3hub';
+  const TIKTOK_HANDLE = '@zen3hub4';
+  const TIKTOK_URL = 'https://tiktok.com/@zen3hub4';
 
   // ---------- STORAGE KEYS ----------
   const USERS_KEY = 'zen3hub_users';
@@ -529,6 +532,13 @@
   const registerBtn = document.getElementById('registerBtn');
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
+
+  // TikTok menu link
+  const tiktokMenuLink = document.getElementById('tiktokMenuLink');
+  tiktokMenuLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.open(TIKTOK_URL, '_blank');
+  });
 
   // Shop elements
   const shopGrid = document.getElementById('shopGrid');
@@ -819,6 +829,13 @@
     cartModal.classList.remove('show');
     overlay.classList.remove('show');
   });
+
+  // update TikTok links in about section
+  const aboutTikTokLink = document.querySelector('#about-section a[href*="tiktok"]');
+  if (aboutTikTokLink) {
+    aboutTikTokLink.href = TIKTOK_URL;
+    aboutTikTokLink.innerText = '📱 ' + TIKTOK_HANDLE;
+  }
 })();
 </script>
 </body>
