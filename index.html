@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>WebShop - Auto-Sync QR Scanner & Payment System</title>
+    <title>WebShop - Interactive Map Pickup & Auto-Save System</title>
     <style>
         * {
             margin: 0;
@@ -48,14 +48,6 @@
 
         .nav-links button:hover {
             transform: translateY(-2px);
-        }
-
-        .sync-status {
-            font-size: 0.8rem;
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            background: #48bb78;
-            color: white;
         }
 
         .container {
@@ -228,24 +220,31 @@
             font-weight: bold;
         }
 
-        .pickup-point {
-            background: #f0f0f0;
-            padding: 0.5rem 1rem;
-            margin: 0.5rem;
-            border-radius: 5px;
-            cursor: pointer;
-            display: inline-block;
-        }
-
-        .pickup-point.selected {
-            background: #667eea;
-            color: white;
+        .map-container {
+            margin: 1rem 0;
+            border-radius: 10px;
+            overflow: hidden;
         }
 
         #map, #pickup-map, #confirmation-map {
-            height: 300px;
-            margin: 1rem 0;
+            height: 400px;
+            width: 100%;
             border-radius: 10px;
+        }
+
+        .pickup-info {
+            background: #f0f0f0;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        .selected-point {
+            background: #48bb78;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 5px;
+            text-align: center;
         }
 
         .alert {
@@ -267,9 +266,44 @@
             to { transform: translateX(0); }
         }
 
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .orders-table th, .orders-table td {
+            border: 1px solid #ddd;
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .orders-table th {
+            background: #667eea;
+            color: white;
+        }
+
+        .status-paid {
+            background: #48bb78;
+            color: white;
+            padding: 0.3rem 0.6rem;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .status-cash {
+            background: #ed8936;
+            color: white;
+            padding: 0.3rem 0.6rem;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
         @media (max-width: 768px) {
             .navbar { flex-direction: column; gap: 1rem; }
             .nav-links { justify-content: center; }
+            .modal-content { margin: 1rem; padding: 1rem; }
+            #map, #pickup-map { height: 300px; }
         }
     </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -279,46 +313,100 @@
 </head>
 <body>
     <div class="navbar">
-        <h2>🛍️ WebShop Romania <span class="sync-status" id="sync-status">🔄 Auto-Sync</span></h2>
+        <h2>🛍️ WebShop Romania</h2>
         <div class="nav-links">
             <button onclick="showProducts()">🏪 Shop</button>
             <button onclick="showCart()">🛒 Cart (<span id="cart-count">0</span>)</button>
             <button onclick="showQRScanner()">📷 Scan QR</button>
             <button onclick="showOwnerLogin()">👑 Owner</button>
-            <button onclick="generateShareLink()">🔗 Share Shop</button>
         </div>
     </div>
 
     <div class="container" id="app"></div>
 
-    <!-- Modals -->
-    <div id="cart-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeCart()">&times;</span><h2>Your Cart</h2><div id="cart-items"></div><div class="cart-total" id="cart-total"></div><button onclick="showPickupSelection()" style="width:100%;padding:1rem;background:#48bb78;color:white;border:none;border-radius:5px;margin-top:1rem;">Continue to Pickup</button></div></div>
-    
-    <div id="pickup-modal" class="modal"><div class="modal-content"><span class="close" onclick="closePickupModal()">&times;</span><h2>Select Pickup Location</h2><div id="pickup-map"></div><div id="pickup-options"></div><button onclick="confirmPickupAndPay()" style="width:100%;padding:1rem;background:#48bb78;color:white;border:none;border-radius:5px;margin-top:1rem;">Confirm & Finish</button></div></div>
-    
-    <div id="qr-scanner-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeQRScannerModal()">&times;</span><h2>📷 QR Scanner</h2><div id="qr-reader" style="width:100%;max-width:500px;margin:0 auto;"></div><div class="scanner-controls" style="margin-top:1rem;display:flex;gap:1rem;justify-content:center;"><button onclick="startScanner()">Start Camera</button><button onclick="stopScanner()" style="background:#f56565;">Stop</button><button onclick="showManualQR()">Manual Entry</button></div></div></div>
-    
-    <div id="manual-qr-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeManualQRModal()">&times;</span><h2>Enter QR Code</h2><input type="text" id="manual-qr-input" placeholder="QR Code" style="width:100%;padding:0.5rem;margin:1rem 0;"><button onclick="verifyManualQR()" style="width:100%;padding:0.5rem;background:#667eea;color:white;border:none;border-radius:5px;">Verify</button></div></div>
-    
-    <div id="owner-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeOwnerModal()">&times;</span><h2>Owner Login</h2><input type="email" id="owner-email" placeholder="Email" style="width:100%;padding:0.5rem;margin:1rem 0;"><button onclick="ownerLogin()" style="width:100%;padding:0.5rem;background:#667eea;color:white;border:none;border-radius:5px;">Login</button></div></div>
-    
-    <div id="balance-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeBalanceModal()">&times;</span><h2>💰 Your Balance</h2><div style="text-align:center;padding:2rem;"><h3>$<span id="user-balance">0</span></h3><p>✓ Weekly $100 added!</p><button onclick="closeBalanceModal()" style="margin-top:1rem;padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:5px;">Continue</button></div></div></div>
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCart()">&times;</span>
+            <h2>Your Cart</h2>
+            <div id="cart-items"></div>
+            <div class="cart-total" id="cart-total"></div>
+            <button onclick="showPickupSelection()" style="width:100%;padding:1rem;background:#48bb78;color:white;border:none;border-radius:5px;margin-top:1rem;">Continue to Pickup</button>
+        </div>
+    </div>
+
+    <!-- Pickup Location Modal with Interactive Map -->
+    <div id="pickup-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePickupModal()">&times;</span>
+            <h2>📍 Select Your Pickup Location</h2>
+            <p style="color:#666; margin-bottom:1rem;">Click anywhere on the map to select where you want to pick up your order</p>
+            <div class="map-container">
+                <div id="pickup-map"></div>
+            </div>
+            <div id="selected-location-info" class="pickup-info" style="display:none;">
+                <div class="selected-point">✓ Selected Pickup Point</div>
+                <p id="selected-address"></p>
+            </div>
+            <div class="form-group" style="margin-top:1rem;">
+                <label>Your Full Name (required):</label>
+                <input type="text" id="customer-name" placeholder="Enter your full name" style="width:100%; padding:0.8rem; border:1px solid #ddd; border-radius:5px;">
+            </div>
+            <button onclick="confirmPickupAndPay()" style="width:100%;padding:1rem;background:#48bb78;color:white;border:none;border-radius:5px;margin-top:1rem;">Confirm Pickup & Finish Order</button>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div id="qr-scanner-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeQRScannerModal()">&times;</span>
+            <h2>📷 QR Code Scanner</h2>
+            <div id="qr-reader" style="width:100%;max-width:500px;margin:0 auto;"></div>
+            <div style="margin-top:1rem;display:flex;gap:1rem;justify-content:center;">
+                <button onclick="startScanner()" style="padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:5px;">Start Camera</button>
+                <button onclick="stopScanner()" style="padding:0.5rem 1rem;background:#f56565;color:white;border:none;border-radius:5px;">Stop</button>
+                <button onclick="showManualQR()" style="padding:0.5rem 1rem;background:#48bb78;color:white;border:none;border-radius:5px;">Manual Entry</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual QR Modal -->
+    <div id="manual-qr-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeManualQRModal()">&times;</span>
+            <h2>Enter QR Code</h2>
+            <input type="text" id="manual-qr-input" placeholder="QR Code" style="width:100%;padding:0.8rem;margin:1rem 0;border:1px solid #ddd;border-radius:5px;">
+            <button onclick="verifyManualQR()" style="width:100%;padding:0.8rem;background:#667eea;color:white;border:none;border-radius:5px;">Verify</button>
+        </div>
+    </div>
+
+    <!-- Owner Login Modal -->
+    <div id="owner-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeOwnerModal()">&times;</span>
+            <h2>Owner Login</h2>
+            <input type="email" id="owner-email" placeholder="owner@webshop.com" style="width:100%;padding:0.8rem;margin:1rem 0;border:1px solid #ddd;border-radius:5px;">
+            <button onclick="ownerLogin()" style="width:100%;padding:0.8rem;background:#667eea;color:white;border:none;border-radius:5px;">Login</button>
+        </div>
+    </div>
+
+    <!-- Balance Modal -->
+    <div id="balance-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeBalanceModal()">&times;</span>
+            <h2>💰 Your Balance</h2>
+            <div style="text-align:center;padding:2rem;">
+                <h3 style="font-size:3rem;color:#667eea;">$<span id="user-balance">0</span></h3>
+                <p style="margin-top:1rem;">✓ Weekly $100 added automatically!</p>
+                <button onclick="closeBalanceModal()" style="margin-top:1rem;padding:0.5rem 2rem;background:#667eea;color:white;border:none;border-radius:5px;">Continue Shopping</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // ============ SYNC SYSTEM ============
-        // Unique shop ID - this ensures all devices with same ID see same data
-        let SHOP_ID = localStorage.getItem('shop_id');
-        if (!SHOP_ID) {
-            SHOP_ID = 'shop_' + Math.random().toString(36).substr(2, 12);
-            localStorage.setItem('shop_id', SHOP_ID);
-        }
+        // ============ DATA STORAGE (AUTO-SAVED IN CODE VIA LOCALSTORAGE) ============
+        // All data is automatically saved and loaded - no manual saving needed!
         
-        // Storage key with shop ID
-        function getStorageKey(type) {
-            return `webshop_${SHOP_ID}_${type}`;
-        }
-        
-        // Global data
         let products = [];
         let activeQRs = [];
         let qrUsers = {};
@@ -327,25 +415,17 @@
         let currentUser = null;
         let isOwner = false;
         let selectedPickupPoint = null;
+        let selectedLatLng = null;
         let html5QrCode = null;
         let isScanning = false;
         let pickupMap = null;
         
         const OWNER_EMAIL = "owner@webshop.com";
         
-        let pickupPoints = [
-            { id: 1, lat: 44.4268, lng: 26.1025, name: "Bucharest - Central Hub", address: "Strada Lipscani 12" },
-            { id: 2, lat: 46.7712, lng: 23.6236, name: "Cluj-Napoca - City Center", address: "Piața Unirii 15" },
-            { id: 3, lat: 45.7489, lng: 21.2087, name: "Timișoara - Victory Square", address: "Piața Victoriei 3" },
-            { id: 4, lat: 44.1733, lng: 28.6383, name: "Constanța - Old Town", address: "Strada Ovidiu 9" },
-            { id: 5, lat: 45.6569, lng: 25.6112, name: "Brașov - Council Square", address: "Piața Sfatului 1" },
-            { id: 6, lat: 47.1585, lng: 27.6013, name: "Iași - Palace of Culture", address: "Bulevardul Ștefan cel Mare 1" }
-        ];
-        
-        // ============ DATA LOAD/SAVE WITH AUTO-SYNC ============
+        // ============ AUTO-LOAD DATA ON STARTUP ============
         function loadAllData() {
             // Load products
-            const savedProducts = localStorage.getItem(getStorageKey('products'));
+            const savedProducts = localStorage.getItem('webshop_products');
             if (savedProducts) {
                 products = JSON.parse(savedProducts);
             } else {
@@ -353,13 +433,14 @@
                     { id: 1, name: "Premium T-Shirt", price: 29.99, image: "https://via.placeholder.com/200/667eea/ffffff?text=T-Shirt" },
                     { id: 2, name: "Designer Jeans", price: 79.99, image: "https://via.placeholder.com/200/764ba2/ffffff?text=Jeans" },
                     { id: 3, name: "Sport Shoes", price: 89.99, image: "https://via.placeholder.com/200/48bb78/ffffff?text=Shoes" },
-                    { id: 4, name: "Leather Wallet", price: 39.99, image: "https://via.placeholder.com/200/f56565/ffffff?text=Wallet" }
+                    { id: 4, name: "Leather Wallet", price: 39.99, image: "https://via.placeholder.com/200/f56565/ffffff?text=Wallet" },
+                    { id: 5, name: "Designer Backpack", price: 59.99, image: "https://via.placeholder.com/200/4299e1/ffffff?text=Backpack" }
                 ];
                 saveProducts();
             }
             
             // Load QR codes
-            const savedQRs = localStorage.getItem(getStorageKey('qrs'));
+            const savedQRs = localStorage.getItem('webshop_qrs');
             if (savedQRs) {
                 activeQRs = JSON.parse(savedQRs);
             } else {
@@ -367,7 +448,7 @@
             }
             
             // Load QR users
-            const savedUsers = localStorage.getItem(getStorageKey('users'));
+            const savedUsers = localStorage.getItem('webshop_users');
             if (savedUsers) {
                 qrUsers = JSON.parse(savedUsers);
             } else {
@@ -375,7 +456,7 @@
             }
             
             // Load orders
-            const savedOrders = localStorage.getItem(getStorageKey('orders'));
+            const savedOrders = localStorage.getItem('webshop_orders');
             if (savedOrders) {
                 orders = JSON.parse(savedOrders);
             } else {
@@ -383,7 +464,7 @@
             }
             
             // Load cart
-            const savedCart = localStorage.getItem(getStorageKey('cart'));
+            const savedCart = localStorage.getItem('webshop_cart');
             if (savedCart) {
                 cart = JSON.parse(savedCart);
             } else {
@@ -393,128 +474,129 @@
             updateCartCount();
         }
         
+        // ============ AUTO-SAVE FUNCTIONS ============
         function saveProducts() {
-            localStorage.setItem(getStorageKey('products'), JSON.stringify(products));
-            triggerSync();
+            localStorage.setItem('webshop_products', JSON.stringify(products));
+            console.log('✅ Products auto-saved:', products.length);
         }
         
         function saveQRs() {
-            localStorage.setItem(getStorageKey('qrs'), JSON.stringify(activeQRs));
-            triggerSync();
+            localStorage.setItem('webshop_qrs', JSON.stringify(activeQRs));
+            console.log('✅ QR Codes auto-saved:', activeQRs.length);
         }
         
         function saveUsers() {
-            localStorage.setItem(getStorageKey('users'), JSON.stringify(qrUsers));
-            triggerSync();
+            localStorage.setItem('webshop_users', JSON.stringify(qrUsers));
+            console.log('✅ QR Users auto-saved');
         }
         
         function saveOrders() {
-            localStorage.setItem(getStorageKey('orders'), JSON.stringify(orders));
-            triggerSync();
+            localStorage.setItem('webshop_orders', JSON.stringify(orders));
+            console.log('✅ Orders auto-saved:', orders.length);
         }
         
         function saveCart() {
-            localStorage.setItem(getStorageKey('cart'), JSON.stringify(cart));
+            localStorage.setItem('webshop_cart', JSON.stringify(cart));
+            console.log('✅ Cart auto-saved:', cart.length);
         }
         
-        // ============ SYNC BETWEEN TABS/DEVICES ============
-        function triggerSync() {
-            document.getElementById('sync-status').style.background = '#fbbf24';
-            document.getElementById('sync-status').innerHTML = '🔄 Syncing...';
-            setTimeout(() => {
-                document.getElementById('sync-status').style.background = '#48bb78';
-                document.getElementById('sync-status').innerHTML = '✓ Synced';
-                setTimeout(() => {
-                    document.getElementById('sync-status').innerHTML = '🔗 Auto-Sync';
-                }, 2000);
-            }, 500);
+        // ============ PRODUCT FUNCTIONS ============
+        function addProduct() {
+            const name = document.getElementById('product-name').value;
+            const price = parseFloat(document.getElementById('product-price').value);
+            const image = document.getElementById('product-image').value || 'https://via.placeholder.com/200';
+            
+            if (name && price) {
+                const newProduct = { 
+                    id: Date.now(), 
+                    name, 
+                    price, 
+                    image 
+                };
+                products.push(newProduct);
+                saveProducts(); // AUTO-SAVED!
+                document.getElementById('product-name').value = '';
+                document.getElementById('product-price').value = '';
+                document.getElementById('product-image').value = '';
+                showProducts();
+                showAlert(`✅ Product "${name}" added and AUTO-SAVED!`, 'success');
+            } else {
+                showAlert('Please fill all fields!', 'error');
+            }
         }
         
-        // Listen for storage events (syncs across all tabs and browsers on same device)
-        window.addEventListener('storage', (e) => {
-            if (e.key && e.key.includes(SHOP_ID)) {
-                console.log('Sync update from another tab:', e.key);
-                loadAllData();
-                if (isOwner) {
-                    showProducts();
-                } else {
-                    showProducts();
-                }
+        function deleteProduct(productId) {
+            if (confirm('Delete this product?')) {
+                products = products.filter(p => p.id !== productId);
+                saveProducts(); // AUTO-SAVED!
+                showProducts();
+                showAlert('✅ Product deleted and AUTO-SAVED!', 'success');
+            }
+        }
+        
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                cart.push(product);
+                saveCart(); // AUTO-SAVED!
                 updateCartCount();
-                showAlert('Data synced from another device!', 'info');
+                showAlert(`${product.name} added to cart!`, 'success');
             }
-        });
-        
-        // ============ SHARE LINK GENERATION ============
-        function generateShareLink() {
-            const url = window.location.href.split('?')[0];
-            const shareUrl = `${url}?shop=${SHOP_ID}`;
-            
-            // Copy to clipboard
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                showAlert(`Shop link copied! Share this link with others: ${shareUrl}`, 'success');
-            });
-            
-            // Also show in modal
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'block';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
-                    <h2>🔗 Share Your Shop</h2>
-                    <p>Share this link with others - they will see the same products and QR codes!</p>
-                    <input type="text" value="${shareUrl}" readonly style="width:100%;padding:0.5rem;margin:1rem 0;border:1px solid #ddd;border-radius:5px;">
-                    <button onclick="navigator.clipboard.writeText('${shareUrl}');alert('Copied!');" style="width:100%;padding:0.5rem;background:#667eea;color:white;border:none;border-radius:5px;">Copy Link</button>
-                    <p style="margin-top:1rem;font-size:0.8rem;color:#666;">Shop ID: ${SHOP_ID}</p>
-                </div>
-            `;
-            document.body.appendChild(modal);
         }
         
-        // Check URL for shop ID parameter
-        function checkShopFromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const shopParam = urlParams.get('shop');
-            if (shopParam && shopParam !== SHOP_ID) {
-                if (confirm(`Switch to shop: ${shopParam}? Current products will be replaced.`)) {
-                    SHOP_ID = shopParam;
-                    localStorage.setItem('shop_id', SHOP_ID);
-                    loadAllData();
-                    showProducts();
-                    showAlert(`Switched to shop: ${SHOP_ID}`, 'success');
-                }
-            }
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            saveCart(); // AUTO-SAVED!
+            updateCartCount();
+            showCart();
+        }
+        
+        function updateCartCount() {
+            document.getElementById('cart-count').innerText = cart.length;
         }
         
         // ============ QR CODE FUNCTIONS ============
         function generateQRCode() {
-            const qrId = 'QR_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+            const qrId = 'VIP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
             activeQRs.push(qrId);
-            saveQRs();
+            saveQRs(); // AUTO-SAVED!
             
             qrUsers[qrId] = { balance: 100, lastWeekly: Date.now() };
-            saveUsers();
+            saveUsers(); // AUTO-SAVED!
             
             displayQRList();
-            showAlert(`QR Code generated: ${qrId}`, 'success');
+            showAlert(`✅ QR Code generated and AUTO-SAVED: ${qrId}`, 'success');
+            
+            // Visual feedback
+            const qrContainer = document.createElement('div');
+            qrContainer.className = 'qr-item';
+            const qrDivId = 'qr_' + qrId.replace(/[^a-zA-Z0-9]/g, '_');
+            qrContainer.innerHTML = `
+                <div>
+                    <strong>${qrId}</strong>
+                    <div id="${qrDivId}"></div>
+                </div>
+                <button class="delete-qr" onclick="deleteQRCode('${qrId}')">Delete</button>
+            `;
+            document.getElementById('qr-list')?.appendChild(qrContainer);
+            new QRCode(document.getElementById(qrDivId), { text: qrId, width: 100, height: 100 });
         }
         
         function deleteQRCode(qrId) {
             if (confirm('Delete this QR code?')) {
                 activeQRs = activeQRs.filter(q => q !== qrId);
                 delete qrUsers[qrId];
-                saveQRs();
-                saveUsers();
+                saveQRs(); // AUTO-SAVED!
+                saveUsers(); // AUTO-SAVED!
                 displayQRList();
-                showAlert('QR Code deleted!', 'success');
+                showAlert('✅ QR Code deleted and AUTO-SAVED!', 'success');
             }
         }
         
         function displayQRList() {
             const qrListDiv = document.getElementById('qr-list');
             if (qrListDiv) {
-                qrListDiv.innerHTML = '<h4>Active QR Codes:</h4>';
+                qrListDiv.innerHTML = '<h4>Active QR Codes (Auto-Saved):</h4>';
                 activeQRs.forEach(qr => {
                     const container = document.createElement('div');
                     container.className = 'qr-item';
@@ -540,7 +622,7 @@
                 document.getElementById('user-balance').innerText = balance;
                 document.getElementById('balance-modal').style.display = 'block';
                 closeQRScannerModal();
-                showAlert(`QR verified! Balance: $${balance}`, 'success');
+                showAlert(`✅ QR verified! Balance: $${balance}`, 'success');
             } else {
                 showAlert('Invalid QR Code!', 'error');
             }
@@ -554,111 +636,137 @@
                 document.getElementById('user-balance').innerText = balance;
                 document.getElementById('balance-modal').style.display = 'block';
                 closeManualQRModal();
-                showAlert(`QR verified! Balance: $${balance}`, 'success');
+                showAlert(`✅ QR verified! Balance: $${balance}`, 'success');
             } else {
                 showAlert('Invalid QR Code!', 'error');
             }
         }
         
-        // ============ PRODUCT FUNCTIONS ============
-        function addProduct() {
-            const name = document.getElementById('product-name').value;
-            const price = parseFloat(document.getElementById('product-price').value);
-            const image = document.getElementById('product-image').value || 'https://via.placeholder.com/200';
+        // ============ INTERACTIVE MAP PICKUP ============
+        function initPickupMap() {
+            if (pickupMap) pickupMap.remove();
             
-            if (name && price) {
-                const newProduct = { id: Date.now(), name, price, image };
-                products.push(newProduct);
-                saveProducts();
-                document.getElementById('product-name').value = '';
-                document.getElementById('product-price').value = '';
-                document.getElementById('product-image').value = '';
-                showProducts();
-                showAlert('Product added and synced!', 'success');
-            } else {
-                showAlert('Fill all fields!', 'error');
-            }
-        }
-        
-        function deleteProduct(productId) {
-            if (confirm('Delete this product?')) {
-                products = products.filter(p => p.id !== productId);
-                saveProducts();
-                showProducts();
-                showAlert('Product deleted!', 'success');
-            }
-        }
-        
-        function addToCart(productId) {
-            const product = products.find(p => p.id === productId);
-            if (product) {
-                cart.push(product);
-                saveCart();
-                updateCartCount();
-                showAlert(`${product.name} added to cart!`, 'success');
-            }
-        }
-        
-        function removeFromCart(index) {
-            cart.splice(index, 1);
-            saveCart();
-            updateCartCount();
-            showCart();
-        }
-        
-        function updateCartCount() {
-            document.getElementById('cart-count').innerText = cart.length;
+            pickupMap = L.map('pickup-map').setView([46.7712, 23.6236], 12); // Cluj-Napoca központ
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(pickupMap);
+            
+            // Add click handler for map
+            pickupMap.on('click', function(e) {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+                
+                // Remove existing marker
+                if (window.selectedMarker) {
+                    pickupMap.removeLayer(window.selectedMarker);
+                }
+                
+                // Add new marker at clicked location
+                window.selectedMarker = L.marker([lat, lng]).addTo(pickupMap)
+                    .bindPopup('Your selected pickup point')
+                    .openPopup();
+                
+                // Reverse geocoding to get address
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const address = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                        selectedPickupPoint = {
+                            lat: lat,
+                            lng: lng,
+                            name: "Custom Pickup Point",
+                            address: address
+                        };
+                        selectedLatLng = { lat, lng };
+                        
+                        document.getElementById('selected-location-info').style.display = 'block';
+                        document.getElementById('selected-address').innerHTML = `<strong>📍 Address:</strong><br>${address}`;
+                        showAlert('Pickup location selected! Click marker to see address.', 'success');
+                    })
+                    .catch(() => {
+                        selectedPickupPoint = {
+                            lat: lat,
+                            lng: lng,
+                            name: "Custom Pickup Point",
+                            address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+                        };
+                        document.getElementById('selected-location-info').style.display = 'block';
+                        document.getElementById('selected-address').innerHTML = `<strong>📍 Coordinates:</strong><br>${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    });
+            });
         }
         
         // ============ ORDER FUNCTIONS ============
-        async function confirmPickupAndPay() {
+        function confirmPickupAndPay() {
+            const customerName = document.getElementById('customer-name').value.trim();
+            
             if (!selectedPickupPoint) {
-                showAlert('Select a pickup location!', 'error');
+                showAlert('Please click on the map to select a pickup location!', 'error');
+                return;
+            }
+            
+            if (!customerName) {
+                showAlert('Please enter your full name!', 'error');
+                document.getElementById('customer-name').focus();
                 return;
             }
             
             const total = cart.reduce((sum, item) => sum + item.price, 0);
             let paymentMethod = 'Cash';
-            let orderStatus = 'Pending Cash';
-            let customerInfo = 'Walk-in';
+            let orderStatus = 'Pending (Cash Payment)';
+            let customerInfo = customerName;
             
             if (currentUser && qrUsers[currentUser]) {
                 if (qrUsers[currentUser].balance >= total) {
                     qrUsers[currentUser].balance -= total;
-                    saveUsers();
+                    saveUsers(); // AUTO-SAVED!
                     paymentMethod = 'QR Balance';
                     orderStatus = 'Paid';
-                    customerInfo = `QR: ${currentUser}`;
-                    showAlert(`Payment successful! Remaining: $${qrUsers[currentUser].balance}`, 'success');
+                    customerInfo = `${customerName} (QR: ${currentUser})`;
+                    showAlert(`✅ Payment successful! Remaining: $${qrUsers[currentUser].balance}`, 'success');
                 } else {
-                    paymentMethod = 'Cash (Insufficient QR)';
-                    orderStatus = 'Pending Cash';
-                    showAlert('Insufficient QR balance! Pay cash.', 'error');
+                    paymentMethod = 'Cash (Insufficient QR Balance)';
+                    orderStatus = 'Pending (Cash Payment)';
+                    showAlert('⚠️ Insufficient QR balance! Please pay cash at pickup.', 'warning');
                 }
             }
             
             const order = {
                 id: Date.now(),
-                date: new Date().toISOString(),
+                date: new Date().toLocaleString(),
+                customerName: customerName,
                 items: [...cart],
-                total,
-                paymentMethod,
+                total: total,
+                paymentMethod: paymentMethod,
                 status: orderStatus,
-                pickupLocation: selectedPickupPoint,
-                customerInfo
+                pickupLocation: {
+                    lat: selectedPickupPoint.lat,
+                    lng: selectedPickupPoint.lng,
+                    address: selectedPickupPoint.address
+                }
             };
             
             orders.unshift(order);
-            saveOrders();
+            saveOrders(); // AUTO-SAVED!
             
-            // Send email notification (simulated)
-            console.log(`📧 EMAIL to ${OWNER_EMAIL}: Order #${order.id} at ${order.pickupLocation.name}`);
-            showAlert(`Order #${order.id} placed! Owner notified.`, 'success');
+            // Email notification to owner (simulated)
+            console.log(`📧 EMAIL to ${OWNER_EMAIL}:`);
+            console.log(`   New Order #${order.id}`);
+            console.log(`   Customer: ${customerName}`);
+            console.log(`   Total: $${total}`);
+            console.log(`   Pickup Location: ${selectedPickupPoint.address}`);
+            console.log(`   Items: ${order.items.map(i => i.name).join(', ')}`);
             
+            showAlert(`✅ Order #${order.id} placed! Owner notified.`, 'success');
+            
+            // Clear cart
             cart = [];
-            saveCart();
+            saveCart(); // AUTO-SAVED!
             updateCartCount();
             closePickupModal();
+            
+            // Show confirmation with map
             showOrderConfirmation(order);
         }
         
@@ -667,17 +775,36 @@
             app.innerHTML = `
                 <div style="background:white;padding:2rem;border-radius:10px;text-align:center;">
                     <h2 style="color:#48bb78;">✅ Order Confirmed!</h2>
+                    <p style="font-size:1.2rem;margin:1rem 0;">Thank you, ${order.customerName}!</p>
                     <p>Order #${order.id}</p>
                     <p>Total: <strong>$${order.total}</strong></p>
-                    <p>Pickup: ${order.pickupLocation.name}</p>
-                    <div id="confirm-map" style="height:300px;margin:1rem 0;"></div>
-                    <button onclick="showProducts()" style="padding:0.8rem 2rem;background:#667eea;color:white;border:none;border-radius:5px;">Continue Shopping</button>
+                    <p>Payment: ${order.paymentMethod}</p>
+                    <p>Status: ${order.status}</p>
+                    
+                    <div class="map-container">
+                        <div id="confirmation-map" style="height:300px;margin:1rem 0;"></div>
+                    </div>
+                    
+                    <div style="background:#f0f0f0;padding:1rem;border-radius:5px;margin:1rem 0;">
+                        <h4>📍 Your Pickup Location:</h4>
+                        <p>${order.pickupLocation.address}</p>
+                    </div>
+                    
+                    <div style="background:#fff3cd;padding:1rem;border-radius:5px;margin:1rem 0;">
+                        <h4>📦 Order Items:</h4>
+                        ${order.items.map(item => `<p>${item.name} - $${item.price}</p>`).join('')}
+                    </div>
+                    
+                    <button onclick="showProducts()" style="margin-top:1rem;padding:0.8rem 2rem;background:#667eea;color:white;border:none;border-radius:5px;">Continue Shopping</button>
                 </div>
             `;
+            
             setTimeout(() => {
-                const map = L.map('confirm-map').setView([order.pickupLocation.lat, order.pickupLocation.lng], 14);
+                const map = L.map('confirmation-map').setView([order.pickupLocation.lat, order.pickupLocation.lng], 15);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                L.marker([order.pickupLocation.lat, order.pickupLocation.lng]).addTo(map).bindPopup(order.pickupLocation.name).openPopup();
+                L.marker([order.pickupLocation.lat, order.pickupLocation.lng]).addTo(map)
+                    .bindPopup(`<b>Your Pickup Point</b><br>${order.pickupLocation.address}`)
+                    .openPopup();
             }, 100);
         }
         
@@ -688,55 +815,88 @@
                 app.innerHTML = `
                     <div class="owner-panel">
                         <h2>👑 Owner Dashboard</h2>
-                        <p style="color:#48bb78;">✓ All changes sync automatically to all devices with the same Shop ID!</p>
-                        <p style="color:#667eea;">🔗 Shop ID: <strong>${SHOP_ID}</strong></p>
-                        <button onclick="generateShareLink()" style="margin:1rem 0;padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:5px;">📤 Share Shop Link</button>
+                        <p style="color:#48bb78; margin-bottom:1rem;">✓ All changes are AUTO-SAVED instantly!</p>
                         
-                        <h3>📦 Orders</h3>
+                        <h3>📦 Recent Orders (${orders.length})</h3>
                         <div id="orders-list"></div>
                         
-                        <h3>➕ Add Product</h3>
-                        <div class="form-group"><label>Name:</label><input type="text" id="product-name"></div>
-                        <div class="form-group"><label>Price ($):</label><input type="number" id="product-price"></div>
-                        <div class="form-group"><label>Image URL:</label><input type="text" id="product-image" placeholder="https://..."></div>
-                        <button onclick="addProduct()" style="padding:0.5rem 1rem;background:#48bb78;color:white;border:none;border-radius:5px;">➕ Add</button>
+                        <h3 style="margin-top:2rem;">➕ Add New Product</h3>
+                        <div class="form-group">
+                            <label>Product Name:</label>
+                            <input type="text" id="product-name" placeholder="e.g., Designer Jacket">
+                        </div>
+                        <div class="form-group">
+                            <label>Price ($):</label>
+                            <input type="number" id="product-price" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Image URL:</label>
+                            <input type="text" id="product-image" placeholder="https://via.placeholder.com/200">
+                        </div>
+                        <button onclick="addProduct()" style="padding:0.8rem 1rem;background:#48bb78;color:white;border:none;border-radius:5px;cursor:pointer;">➕ Add Product (Auto-Save)</button>
                         
-                        <h3>🔑 QR Codes</h3>
-                        <button onclick="generateQRCode()" style="padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:5px;">🎫 Generate QR</button>
+                        <h3 style="margin-top:2rem;">🔑 QR Code Management</h3>
+                        <button onclick="generateQRCode()" style="padding:0.8rem 1rem;background:#667eea;color:white;border:none;border-radius:5px;cursor:pointer;">🎫 Generate New QR Code (Auto-Save)</button>
                         <div id="qr-list"></div>
                     </div>
-                    <div class="products-grid">${products.map(p => `
-                        <div class="product-card">
-                            <button class="delete-product" onclick="deleteProduct(${p.id})">×</button>
-                            <img src="${p.image}" class="product-image" onerror="this.src='https://via.placeholder.com/200'">
-                            <div class="product-info">
-                                <div class="product-title">${p.name}</div>
-                                <div class="product-price">$${p.price}</div>
-                                <button onclick="addToCart(${p.id})" class="add-to-cart">Add to Cart</button>
+                    <div class="products-grid">
+                        ${products.map(product => `
+                            <div class="product-card">
+                                <button class="delete-product" onclick="deleteProduct(${product.id})">×</button>
+                                <img src="${product.image}" class="product-image" onerror="this.src='https://via.placeholder.com/200'">
+                                <div class="product-info">
+                                    <div class="product-title">${product.name}</div>
+                                    <div class="product-price">$${product.price}</div>
+                                    <button onclick="addToCart(${product.id})" class="add-to-cart">Add to Cart</button>
+                                </div>
                             </div>
-                        </div>
-                    `).join('')}</div>
+                        `).join('')}
+                    </div>
                 `;
                 displayQRList();
                 displayOrders();
             } else {
-                app.innerHTML = `<div class="products-grid">${products.map(p => `
-                    <div class="product-card">
-                        <img src="${p.image}" class="product-image" onerror="this.src='https://via.placeholder.com/200'">
-                        <div class="product-info">
-                            <div class="product-title">${p.name}</div>
-                            <div class="product-price">$${p.price}</div>
-                            <button onclick="addToCart(${p.id})" class="add-to-cart">Add to Cart</button>
-                        </div>
+                app.innerHTML = `
+                    <div class="products-grid">
+                        ${products.map(product => `
+                            <div class="product-card">
+                                <img src="${product.image}" class="product-image" onerror="this.src='https://via.placeholder.com/200'">
+                                <div class="product-info">
+                                    <div class="product-title">${product.name}</div>
+                                    <div class="product-price">$${product.price}</div>
+                                    <button onclick="addToCart(${product.id})" class="add-to-cart">Add to Cart</button>
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
-                `).join('')}</div>`;
+                `;
             }
         }
         
         function displayOrders() {
             const div = document.getElementById('orders-list');
             if (div && orders.length) {
-                div.innerHTML = `<table class="orders-table" style="width:100%;border-collapse:collapse;"><tr><th>ID</th><th>Items</th><th>Total</th><th>Status</th><th>Pickup</th></tr>${orders.map(o => `<tr><td>#${o.id}</td><td>${o.items.map(i=>i.name).join(',')}</td><td>$${o.total}</td><td>${o.status}</td><td>${o.pickupLocation.name}</td></tr>`).join('')}</table>`;
+                div.innerHTML = `
+                    <table class="orders-table">
+                        <thead>
+                            <tr><th>ID</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Pickup</th></tr>
+                        </thead>
+                        <tbody>
+                            ${orders.map(o => `
+                                <tr>
+                                    <td>#${o.id}</td>
+                                    <td>${o.date}</td>
+                                    <td>${o.customerName}</td>
+                                    <td>${o.items.map(i=>i.name).join(', ')}</td>
+                                    <td>$${o.total}</td>
+                                    <td>${o.paymentMethod}</td>
+                                    <td><span class="${o.status === 'Paid' ? 'status-paid' : 'status-cash'}">${o.status}</span></td>
+                                    <td><small>${o.pickupLocation.address.substring(0, 50)}...</small></td>
+                                              
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
             } else if (div) {
                 div.innerHTML = '<p>No orders yet.</p>';
             }
@@ -746,7 +906,12 @@
             if (!cart.length) { showAlert('Cart empty!', 'error'); return; }
             const modal = document.getElementById('cart-modal');
             const total = cart.reduce((s, i) => s + i.price, 0);
-            document.getElementById('cart-items').innerHTML = cart.map((item, i) => `<div class="cart-item"><div><strong>${item.name}</strong><br>$${item.price}</div><button onclick="removeFromCart(${i})" style="background:#f56565;color:white;border:none;padding:0.3rem 0.8rem;border-radius:3px;">Remove</button></div>`).join('');
+            document.getElementById('cart-items').innerHTML = cart.map((item, i) => `
+                <div class="cart-item">
+                    <div><strong>${item.name}</strong><br>$${item.price}</div>
+                    <button onclick="removeFromCart(${i})" style="background:#f56565;color:white;border:none;padding:0.3rem 0.8rem;border-radius:3px;">Remove</button>
+                </div>
+            `).join('');
             document.getElementById('cart-total').innerHTML = `Total: $${total.toFixed(2)}`;
             modal.style.display = 'block';
         }
@@ -754,36 +919,32 @@
         function closeCart() { document.getElementById('cart-modal').style.display = 'none'; }
         
         function showPickupSelection() {
+            if (!cart.length) { showAlert('Cart empty!', 'error'); return; }
             closeCart();
             document.getElementById('pickup-modal').style.display = 'block';
+            document.getElementById('customer-name').value = '';
+            document.getElementById('selected-location-info').style.display = 'none';
+            selectedPickupPoint = null;
+            
             setTimeout(() => {
-                if (pickupMap) pickupMap.remove();
-                pickupMap = L.map('pickup-map').setView([45.9432, 24.9668], 7);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pickupMap);
-                pickupPoints.forEach(p => {
-                    L.marker([p.lat, p.lng]).addTo(pickupMap).bindPopup(p.name).on('click', () => selectPickupPoint(p));
-                });
+                initPickupMap();
             }, 100);
-            document.getElementById('pickup-options').innerHTML = pickupPoints.map(p => `<div class="pickup-point" onclick="selectPickupPoint(${JSON.stringify(p).replace(/"/g, '&quot;')})">📍 ${p.name}<br><small>${p.address}</small></div>`).join('');
         }
         
-        function selectPickupPoint(point) {
-            selectedPickupPoint = point;
-            document.querySelectorAll('#pickup-options .pickup-point').forEach(el => el.classList.remove('selected'));
-            event?.target?.closest('.pickup-point')?.classList.add('selected');
-            if (pickupMap) pickupMap.setView([point.lat, point.lng], 13);
-            showAlert(`Selected: ${point.name}`, 'success');
+        function closePickupModal() { 
+            document.getElementById('pickup-modal').style.display = 'none'; 
+            selectedPickupPoint = null;
         }
-        
-        function closePickupModal() { document.getElementById('pickup-modal').style.display = 'none'; selectedPickupPoint = null; }
         
         // ============ SCANNER FUNCTIONS ============
         function showQRScanner() { document.getElementById('qr-scanner-modal').style.display = 'block'; startScanner(); }
         function closeQRScannerModal() { stopScanner(); document.getElementById('qr-scanner-modal').style.display = 'none'; }
+        
         function startScanner() {
             if (html5QrCode) html5QrCode.stop().then(() => startScannerReal()).catch(() => startScannerReal());
             else startScannerReal();
         }
+        
         function startScannerReal() {
             html5QrCode = new Html5Qrcode("qr-reader");
             html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
@@ -792,6 +953,7 @@
             ).catch(() => showAlert('Camera access denied', 'error'));
             isScanning = true;
         }
+        
         function stopScanner() { if (html5QrCode && isScanning) html5QrCode.stop().then(() => isScanning = false); }
         function showManualQR() { closeQRScannerModal(); document.getElementById('manual-qr-modal').style.display = 'block'; }
         function closeManualQRModal() { document.getElementById('manual-qr-modal').style.display = 'none'; }
@@ -799,11 +961,19 @@
         // ============ AUTH ============
         function showOwnerLogin() { document.getElementById('owner-modal').style.display = 'block'; }
         function closeOwnerModal() { document.getElementById('owner-modal').style.display = 'none'; }
+        
         function ownerLogin() {
             const email = document.getElementById('owner-email').value;
-            if (email === OWNER_EMAIL) { isOwner = true; closeOwnerModal(); showProducts(); showAlert('Welcome Owner!', 'success'); }
-            else showAlert('Invalid email!', 'error');
+            if (email === OWNER_EMAIL) { 
+                isOwner = true; 
+                closeOwnerModal(); 
+                showProducts(); 
+                showAlert('Welcome Owner! All changes are AUTO-SAVED.', 'success');
+            } else {
+                showAlert('Invalid email! Use: owner@webshop.com', 'error');
+            }
         }
+        
         function closeBalanceModal() { document.getElementById('balance-modal').style.display = 'none'; }
         
         function showAlert(msg, type) {
@@ -814,7 +984,7 @@
             setTimeout(() => alert.remove(), 3000);
         }
         
-        // Weekly balance update
+        // ============ WEEKLY BALANCE UPDATE ============
         function updateWeeklyBalances() {
             let updated = false;
             for (let qr in qrUsers) {
@@ -829,11 +999,12 @@
         }
         
         // ============ INIT ============
-        checkShopFromURL();
         loadAllData();
         updateWeeklyBalances();
         setInterval(updateWeeklyBalances, 24*60*60*1000);
         showProducts();
+        
+        console.log('✅ WebShop Ready - All data AUTO-SAVED to localStorage!');
     </script>
 </body>
 </html>
