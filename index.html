@@ -3,577 +3,687 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ AI Média Generátor Pro</title>
+    <title>Webshop - QR Code Payment System</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
         }
 
         body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            background: linear-gradient(145deg, #0b0f1c 0%, #1a1f35 100%);
+        }
+
+        /* Navigation */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            padding: 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
-        .glass-card {
-            max-width: 1300px;
-            width: 100%;
-            background: rgba(20, 25, 45, 0.75);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border-radius: 3rem;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
-            padding: 2.5rem;
-            transition: all 0.3s ease;
-        }
-
-        h1 {
-            font-size: 3.2rem;
-            font-weight: 700;
-            background: linear-gradient(130deg, #a6c1ff, #d6b0ff, #ffb6d1);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
-        }
-
-        .subhead {
-            color: rgba(255,255,255,0.6);
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-            border-left: 4px solid #5f7ef2;
-            padding-left: 1.2rem;
-        }
-
-        .owner-badge {
-            background: rgba(255, 215, 0, 0.15);
-            border: 1px solid gold;
-            border-radius: 100px;
-            padding: 0.3rem 1.2rem;
-            display: inline-block;
-            color: gold;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 2rem;
-            backdrop-filter: blur(4px);
-        }
-
-        .login-section {
-            background: rgba(10, 15, 30, 0.6);
-            border-radius: 2rem;
-            padding: 1.8rem;
-            border: 1px solid rgba(255,255,255,0.05);
-            margin-bottom: 2.5rem;
-        }
-
-        .login-title {
-            color: white;
-            font-size: 1.4rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .input-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            align-items: flex-end;
-        }
-
-        .input-field {
-            flex: 1 1 250px;
-        }
-
-        .input-field label {
-            display: block;
-            color: rgba(255,255,255,0.7);
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.4rem;
-        }
-
-        .input-field input {
-            width: 100%;
-            background: rgba(0,0,0,0.35);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 60px;
-            padding: 0.9rem 1.5rem;
-            font-size: 1rem;
-            color: white;
-            transition: 0.2s;
-        }
-
-        .input-field input:focus {
-            outline: none;
-            border-color: #5f7ef2;
-            box-shadow: 0 0 0 3px rgba(95,126,242,0.2);
-        }
-
-        .login-btn {
-            background: linear-gradient(135deg, #5f7ef2, #9d7bf2);
-            border: none;
-            border-radius: 60px;
-            padding: 0.9rem 2.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            color: white;
-            cursor: pointer;
-            transition: 0.2s;
-            border: 1px solid rgba(255,255,255,0.2);
-            flex: 0 0 auto;
-        }
-
-        .login-btn:hover {
-            transform: scale(1.02);
-            filter: brightness(1.1);
-        }
-
-        .user-info {
-            background: rgba(72, 187, 120, 0.15);
-            border: 1px solid #48bb78;
-            border-radius: 60px;
-            padding: 0.8rem 1.8rem;
-            color: #a0f0b0;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            flex-wrap: wrap;
-        }
-
-        .badge-owner {
-            background: gold;
-            color: #0b0f1c;
-            border-radius: 40px;
-            padding: 0.2rem 1rem;
-            font-weight: 700;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-        }
-
-        .nsfw-status {
-            margin-left: auto;
-            font-size: 0.9rem;
-            background: rgba(0,0,0,0.4);
-            padding: 0.3rem 1.2rem;
-            border-radius: 40px;
-            border: 1px solid;
-        }
-
-        .generator-panel {
-            margin-top: 2rem;
-        }
-
-        .prompt-box {
-            background: rgba(10, 15, 30, 0.6);
-            border-radius: 2rem;
-            padding: 2rem;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .prompt-label {
-            color: white;
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        textarea {
-            width: 100%;
-            background: rgba(0,0,0,0.35);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 1.8rem;
-            padding: 1.5rem;
-            font-size: 1.1rem;
-            color: white;
-            resize: vertical;
-            min-height: 120px;
-            margin-bottom: 1.8rem;
-            font-family: inherit;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: #5f7ef2;
-        }
-
-        .media-type {
+        .nav-links {
             display: flex;
             gap: 2rem;
-            margin-bottom: 2rem;
-            color: white;
-        }
-
-        .media-type label {
-            display: flex;
             align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            background: rgba(255,255,255,0.05);
-            padding: 0.6rem 1.5rem;
-            border-radius: 40px;
-            transition: 0.2s;
         }
 
-        .media-type label.selected {
-            background: #5f7ef2;
+        .nav-links button {
+            padding: 0.5rem 1rem;
+            background: #667eea;
             color: white;
-        }
-
-        .generate-btn {
-            background: linear-gradient(135deg, #f25f7e, #f29d7b);
             border: none;
-            border-radius: 60px;
-            padding: 1.2rem 3rem;
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: white;
+            border-radius: 5px;
             cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-            border: 1px solid rgba(255,255,255,0.2);
-            letter-spacing: 0.5px;
+            transition: transform 0.3s;
         }
 
-        .generate-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            filter: grayscale(0.6);
+        .nav-links button:hover {
+            transform: translateY(-2px);
         }
 
-        .output-area {
-            margin-top: 2.5rem;
-            background: rgba(0,0,0,0.3);
-            border-radius: 2rem;
-            padding: 2rem;
-            border: 1px dashed rgba(255,255,255,0.1);
-            min-height: 200px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: rgba(255,255,255,0.5);
-            transition: 0.3s;
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
         }
 
-        .generated-image, .generated-video {
-            max-width: 100%;
-            max-height: 500px;
-            border-radius: 24px;
-            box-shadow: 0 20px 30px rgba(0,0,0,0.6);
-            border: 2px solid rgba(255,255,255,0.1);
-        }
-
-        .nsfw-warning {
-            background: rgba(245, 158, 11, 0.2);
-            border: 1px solid #f59e0b;
-            border-radius: 1rem;
-            padding: 1rem 2rem;
-            color: #fbbf24;
-            margin: 1rem 0;
-            text-align: center;
-        }
-
-        .config-note {
-            background: #2d3748;
-            border-radius: 1rem;
-            padding: 0.8rem 1.5rem;
-            color: #cbd5e0;
-            font-family: monospace;
-            font-size: 0.9rem;
+        /* Product Grid */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
             margin-top: 2rem;
-            border: 1px solid #4a5568;
         }
 
-        footer {
-            margin-top: 2.5rem;
-            color: rgba(255,255,255,0.3);
+        .product-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .product-info {
+            padding: 1rem;
+        }
+
+        .product-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-price {
+            color: #667eea;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+
+        .add-to-cart {
+            width: 100%;
+            padding: 0.8rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .add-to-cart:hover {
+            background: #5a67d8;
+        }
+
+        /* Cart Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 2rem auto;
+            padding: 2rem;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .cart-items {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cart-total {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #667eea;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        /* Owner Panel */
+        .owner-panel {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        /* QR Code */
+        .qr-container {
             text-align: center;
-            font-size: 0.9rem;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            margin: 2rem 0;
+        }
+
+        .qr-code {
+            max-width: 200px;
+            margin: 1rem auto;
+        }
+
+        /* Map */
+        .map-container {
+            margin-top: 2rem;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Pickup Points */
+        .pickup-points {
+            margin-top: 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .pickup-point {
+            background: #f0f0f0;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .pickup-point:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Admin Login */
+        .login-form {
+            max-width: 400px;
+            margin: 2rem auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 5px;
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 3000;
+            animation: slideIn 0.3s;
+        }
+
+        .alert-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .alert-error {
+            background: #f56565;
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+            }
+            to {
+                transform: translateX(0);
+            }
         }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-    <div class="glass-card" id="app">
-        <h1>✨ neurális alkotóműhely</h1>
-        <div class="subhead">Írd le pontosan, mit tartalmazzon — a mesterséges intelligencia megalkotja</div>
-        
-        <div id="ownerBadge" class="owner-badge" style="display: none;">👑 TULAJDONOSI HOZZÁFÉRÉS – NSFW ENGEDÉLYEZVE</div>
+    <div class="navbar">
+        <h2>🛍️ WebShop</h2>
+        <div class="nav-links">
+            <button onclick="showProducts()">Shop</button>
+            <button onclick="showCart()">Cart (<span id="cart-count">0</span>)</button>
+            <button onclick="showQRLogin()">🔑 QR Login</button>
+            <button onclick="showOwnerLogin()">👑 Owner Login</button>
+        </div>
+    </div>
 
-        <div class="login-section" id="loginSection">
-            <div class="login-title">
-                <span>🔐</span> Bejelentkezés (owner email: nmark2007@gmail.com)
+    <div class="container" id="app">
+        <!-- Products will be loaded here -->
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCart()">&times;</span>
+            <h2>Your Cart</h2>
+            <div id="cart-items" class="cart-items"></div>
+            <div class="cart-total" id="cart-total">Total: $0</div>
+            <button onclick="finishPayment()" style="margin-top: 1rem; padding: 1rem; background: #48bb78; color: white; border: none; border-radius: 5px; width: 100%; cursor: pointer;">Finish Payment</button>
+        </div>
+    </div>
+
+    <!-- Owner Login Modal -->
+    <div id="owner-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeOwnerModal()">&times;</span>
+            <h2>Owner Login</h2>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="owner-email" placeholder="Enter owner email">
             </div>
-            <div class="input-group">
-                <div class="input-field">
-                    <label>Email</label>
-                    <input type="email" id="emailInput" placeholder="pelda@email.com" value="nmark2007@gmail.com">
-                </div>
-                <div class="input-field">
-                    <label>Jelszó</label>
-                    <input type="password" id="passwordInput" placeholder="••••••••" value="Nmark2007">
-                </div>
-                <button class="login-btn" id="loginBtn">Belépek</button>
+            <button onclick="ownerLogin()" style="padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Login</button>
+        </div>
+    </div>
+
+    <!-- QR Login Modal -->
+    <div id="qr-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeQRModal()">&times;</span>
+            <h2>Scan QR Code</h2>
+            <div id="qr-scanner-area">
+                <input type="text" id="qr-code-input" placeholder="Enter QR code or scan here">
+                <button onclick="verifyQRCode()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Verify QR</button>
             </div>
-            <div style="margin-top: 1rem; color: #a0aec0; font-size: 0.9rem;">
-                ⚡ Alapértelmezett owner: nmark2007@gmail.com / Nmark2007
+            <div id="qr-balance" style="margin-top: 1rem; display: none;">
+                <h3>Your Balance: $<span id="user-balance">0</span></h3>
             </div>
         </div>
-
-        <div id="userInfo" class="user-info" style="display: none;">
-            <span>📧 <span id="displayEmail"></span></span>
-            <span id="ownerUserBadge" class="badge-owner" style="display: none;">OWNER</span>
-            <span class="nsfw-status" id="nsfwStatusLabel">🔞 NSFW: letiltva</span>
-        </div>
-
-        <div class="generator-panel">
-            <div class="prompt-box">
-                <div class="prompt-label">
-                    <span>📝</span> Pontos leírás (mit tartalmazzon a kép / videó)
-                </div>
-                <textarea id="promptText" placeholder="Pl.: Egy futurisztikus város éjszaka, neonfényekkel, esőben..."></textarea>
-
-                <div id="nsfwBlockMessage" class="nsfw-warning" style="display: none;">
-                    ⚠️ NSFW tartalom (18+) jelenleg tiltva. Csak owner fiók (nmark2007@gmail.com) generálhat felnőtt témát.
-                </div>
-
-                <div class="media-type">
-                    <label id="typeImageLabel" class="selected">
-                        <input type="radio" name="mediaType" value="image" checked style="display: none;"> 🖼️ Kép generálása
-                    </label>
-                    <label id="typeVideoLabel">
-                        <input type="radio" name="mediaType" value="video" style="display: none;"> 🎬 Videó generálása
-                    </label>
-                </div>
-
-                <button class="generate-btn" id="generateBtn">✨ Média generálása</button>
-            </div>
-
-            <div class="output-area" id="outputArea">
-                <span id="outputPlaceholder">✨ Itt jelenik meg a generált kép vagy videó</span>
-            </div>
-
-            <div class="config-note" id="configNote">
-                🔧 KONFIGURÁCIÓ (fejlesztői beállítás a kódban) — <span id="nsfwConfigDisplay">nsfw: no</span> 
-                · Ha igen, owner generálhat 18+ tartalmat. Jelenleg <span id="nsfwConfigState">tiltva</span>.
-                <br>👑 Owner email: <strong>nmark2007@gmail.com</strong> · Jelszó: Nmark2007
-            </div>
-        </div>
-
-        <footer>AI Média Generátor · 18+ tartalom csak konfigurációtól és owner jogosultságtól függ</footer>
     </div>
 
     <script>
-        (function() {
-            // ****************************************************
-            // * KONFIGURÁCIÓ - ITT ÁLLÍTHATOD BE AZ NSFW-T      *
-            // ****************************************************
-            const CONFIG = {
-                NSFW_ENABLED: true,  // <--- IDE ÍRD: true / false (true = engedélyezve ownernek)
-                OWNER_EMAIL: "nmark2007@gmail.com",
-                OWNER_PASSWORD: "Nmark2007"
-            };
+        // Data storage
+        let products = JSON.parse(localStorage.getItem('products')) || [];
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let qrUsers = JSON.parse(localStorage.getItem('qrUsers')) || {};
+        let activeQRs = JSON.parse(localStorage.getItem('activeQRs')) || [];
+        let currentUser = null;
+        let isOwner = false;
+        let map = null;
+        let pickupPoints = [
+            { lat: 44.4268, lng: 26.1025, name: "Bucharest Central" },
+            { lat: 46.7712, lng: 23.6236, name: "Cluj-Napoca Hub" },
+            { lat: 45.7489, lng: 21.2087, name: "Timișoara Point" },
+            { lat: 44.1733, lng: 28.6383, name: "Constanța Pickup" }
+        ];
 
-            let currentUser = null;
-            const nsfwEnabled = CONFIG.NSFW_ENABLED;
+        // Initialize
+        function init() {
+            updateCartCount();
+            showProducts();
+            generateWeeklyQRBalance();
+            setInterval(generateWeeklyQRBalance, 7 * 24 * 60 * 60 * 1000); // Weekly update
+        }
 
-            const loginSection = document.getElementById('loginSection');
-            const userInfoDiv = document.getElementById('userInfo');
-            const ownerBadge = document.getElementById('ownerBadge');
-            const ownerUserBadge = document.getElementById('ownerUserBadge');
-            const nsfwStatusLabel = document.getElementById('nsfwStatusLabel');
-            const nsfwBlockMessage = document.getElementById('nsfwBlockMessage');
-            const generateBtn = document.getElementById('generateBtn');
-            const emailInput = document.getElementById('emailInput');
-            const passwordInput = document.getElementById('passwordInput');
-            const loginBtn = document.getElementById('loginBtn');
-            const displayEmailSpan = document.getElementById('displayEmail');
-            const promptText = document.getElementById('promptText');
-            const outputArea = document.getElementById('outputArea');
-            const outputPlaceholder = document.getElementById('outputPlaceholder');
-            const typeImageLabel = document.getElementById('typeImageLabel');
-            const typeVideoLabel = document.getElementById('typeVideoLabel');
-            const radioImage = document.querySelector('input[type="radio"][value="image"]');
-            const radioVideo = document.querySelector('input[type="radio"][value="video"]');
-            const nsfwConfigDisplay = document.getElementById('nsfwConfigDisplay');
-            const nsfwConfigState = document.getElementById('nsfwConfigState');
-
-            nsfwConfigDisplay.innerText = nsfwEnabled ? 'nsfw: yes' : 'nsfw: no';
-            nsfwConfigState.innerText = nsfwEnabled ? 'engedélyezve (ha owner)' : 'teljesen tiltva';
-
-            function updateUI() {
-                const loggedIn = currentUser !== null;
-                const isOwner = currentUser?.isOwner || false;
-
-                loginSection.style.display = loggedIn ? 'none' : 'block';
-                userInfoDiv.style.display = loggedIn ? 'flex' : 'none';
-                
-                if (loggedIn) {
-                    displayEmailSpan.innerText = currentUser.email;
-                    if (isOwner) {
-                        ownerUserBadge.style.display = 'inline-block';
-                        ownerBadge.style.display = 'inline-block';
-                    } else {
-                        ownerUserBadge.style.display = 'none';
-                        ownerBadge.style.display = 'none';
-                    }
-
-                    if (isOwner && nsfwEnabled) {
-                        nsfwStatusLabel.innerText = '🔞 NSFW: engedélyezve (owner)';
-                        nsfwStatusLabel.style.color = '#fbbf24';
-                        nsfwStatusLabel.style.borderColor = '#f59e0b';
-                        nsfwBlockMessage.style.display = 'none';
-                    } else {
-                        nsfwStatusLabel.innerText = isOwner ? '🔞 NSFW: tiltva (konfigurációban nsfw: no)' : '🔞 NSFW: letiltva (nem owner)';
-                        nsfwStatusLabel.style.color = '#a0aec0';
-                        nsfwStatusLabel.style.borderColor = '#4a5568';
-                        if (!isOwner || !nsfwEnabled) {
-                            nsfwBlockMessage.style.display = 'block';
-                        } else {
-                            nsfwBlockMessage.style.display = 'none';
-                        }
-                    }
-                } else {
-                    ownerUserBadge.style.display = 'none';
-                    ownerBadge.style.display = 'none';
-                    nsfwBlockMessage.style.display = 'none';
-                }
-
-                generateBtn.disabled = !loggedIn;
-            }
-
-            function attemptLogin() {
-                const email = emailInput.value.trim();
-                const password = passwordInput.value.trim();
-
-                if (email === CONFIG.OWNER_EMAIL && password === CONFIG.OWNER_PASSWORD) {
-                    currentUser = { email: email, isOwner: true };
-                } else {
-                    if (email !== '' && password !== '') {
-                        currentUser = { email: email, isOwner: false };
-                    } else {
-                        alert('Kérlek tölts ki minden mezőt!');
-                        return;
-                    }
-                }
-                updateUI();
-            }
-
-            loginBtn.addEventListener('click', attemptLogin);
-
-            [emailInput, passwordInput].forEach(inp => {
-                inp.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') attemptLogin();
-                });
-            });
-
-            typeImageLabel.addEventListener('click', () => {
-                radioImage.checked = true;
-                typeImageLabel.classList.add('selected');
-                typeVideoLabel.classList.remove('selected');
-            });
-            
-            typeVideoLabel.addEventListener('click', () => {
-                radioVideo.checked = true;
-                typeVideoLabel.classList.add('selected');
-                typeImageLabel.classList.remove('selected');
-            });
-
-            generateBtn.addEventListener('click', function() {
-                if (!currentUser) {
-                    alert('Előbb jelentkezz be!');
-                    return;
-                }
-
-                const prompt = promptText.value.trim();
-                if (prompt === '') {
-                    alert('Írd le pontosan, mit generáljak!');
-                    return;
-                }
-
-                const isOwner = currentUser.isOwner;
-                const mediaType = radioImage.checked ? 'image' : 'video';
-
-                const nsfwAllowed = (isOwner && nsfwEnabled);
-                const nsfwKeywords = ['sex', 'porn', 'nsfw', '18+', 'erotikus', 'meztelen', 'akt', 'szex', 'explicit', 'adult', 'xxx', 'nude', 'sexy', 'bikini', 'lingerie'];
-                const lowerPrompt = prompt.toLowerCase();
-                const containsNSFW = nsfwKeywords.some(keyword => lowerPrompt.includes(keyword));
-
-                if (containsNSFW && !nsfwAllowed) {
-                    outputArea.innerHTML = `
-                        <div style="text-align: center; padding: 2rem;">
-                            <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">🚫</span>
-                            <h3 style="color: #f87171; margin-bottom: 1rem;">NSFW tartalom tiltva</h3>
-                            <p style="color: #cbd5e0;">A leírásod 18+ kifejezéseket tartalmaz. Csak owner generálhat ilyet, és csak ha a konfigurációban nsfw: yes van beállítva.</p>
-                            <p style="color: #9ca3af; font-size: 0.9rem; margin-top: 1rem;">(Jelenleg nsfw: ${nsfwEnabled ? 'igen' : 'nem'} a kódban, és owner: ${isOwner ? 'igen' : 'nem'})</p>
+        // Show products
+        function showProducts() {
+            const app = document.getElementById('app');
+            if (isOwner) {
+                app.innerHTML = `
+                    <div class="owner-panel">
+                        <h2>Owner Panel</h2>
+                        <h3>Add New Product</h3>
+                        <div class="form-group">
+                            <label>Product Name:</label>
+                            <input type="text" id="product-name">
                         </div>
-                    `;
-                    return;
-                }
+                        <div class="form-group">
+                            <label>Price ($):</label>
+                            <input type="number" id="product-price">
+                        </div>
+                        <div class="form-group">
+                            <label>Image URL:</label>
+                            <input type="text" id="product-image" placeholder="https://via.placeholder.com/200">
+                        </div>
+                        <button onclick="addProduct()" style="padding: 0.5rem 1rem; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer;">Add Product</button>
+                        
+                        <h3 style="margin-top: 2rem;">Manage QR Codes</h3>
+                        <button onclick="generateQRCode()" style="padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Generate New QR Code</button>
+                        <div id="qr-list" style="margin-top: 1rem;"></div>
+                    </div>
+                    <div class="products-grid">
+                        ${products.map(product => `
+                            <div class="product-card">
+                                <img src="${product.image}" class="product-image" onerror="this.src='https://via.placeholder.com/200'">
+                                <div class="product-info">
+                                    <div class="product-title">${product.name}</div>
+                                    <div class="product-price">$${product.price}</div>
+                                    <button onclick="addToCart(${product.id})" class="add-to-cart">Add to Cart</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                displayQRList();
+            } else {
+                app.innerHTML = `
+                    <div class="products-grid">
+                        ${products.map(product => `
+                            <div class="product-card">
+                                <img src="${product.image}" class="product-image" onerror="this.src='https://via.placeholder.com/200'">
+                                <div class="product-info">
+                                    <div class="product-title">${product.name}</div>
+                                    <div class="product-price">$${product.price}</div>
+                                    <button onclick="addToCart(${product.id})" class="add-to-cart">Add to Cart</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
 
-                const seed = Math.floor(Math.random() * 10000);
-                const width = 800;
-                const height = 450;
+        // Add to cart
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                cart.push(product);
+                localStorage.setItem('cart', JSON.stringify(cart));
+                updateCartCount();
+                showAlert('Product added to cart!', 'success');
+            }
+        }
 
-                outputArea.innerHTML = '';
+        // Update cart count
+        function updateCartCount() {
+            document.getElementById('cart-count').innerText = cart.length;
+        }
 
-                if (mediaType === 'image') {
-                    const img = document.createElement('img');
-                    img.src = `https://picsum.photos/${width}/${height}?random=${seed}`;
-                    img.alt = 'Generált kép: ' + prompt;
-                    img.classList.add('generated-image');
-                    outputArea.appendChild(img);
+        // Show cart
+        function showCart() {
+            const modal = document.getElementById('cart-modal');
+            const cartItemsDiv = document.getElementById('cart-items');
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            
+            cartItemsDiv.innerHTML = cart.map((item, index) => `
+                <div class="cart-item">
+                    <div>
+                        <strong>${item.name}</strong><br>
+                        $${item.price}
+                    </div>
+                    <button onclick="removeFromCart(${index})" style="background: #f56565; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 3px; cursor: pointer;">Remove</button>
+                </div>
+            `).join('');
+            
+            document.getElementById('cart-total').innerHTML = `Total: $${total.toFixed(2)}`;
+            modal.style.display = 'block';
+        }
 
-                    const caption = document.createElement('p');
-                    caption.style.color = '#cbd5e0';
-                    caption.style.marginTop = '1rem';
-                    caption.style.fontStyle = 'italic';
-                    caption.innerText = `🖼️ "${prompt}" (szimulált AI kép)`;
-                    outputArea.appendChild(caption);
+        // Remove from cart
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+            showCart(); // Refresh cart view
+        }
+
+        // Close cart
+        function closeCart() {
+            document.getElementById('cart-modal').style.display = 'none';
+        }
+
+        // Finish payment
+        function finishPayment() {
+            if (cart.length === 0) {
+                showAlert('Cart is empty!', 'error');
+                return;
+            }
+
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            
+            if (currentUser && qrUsers[currentUser]) {
+                // QR user payment
+                if (qrUsers[currentUser].balance >= total) {
+                    qrUsers[currentUser].balance -= total;
+                    localStorage.setItem('qrUsers', JSON.stringify(qrUsers));
+                    showMapWithPickupPoints();
+                    cart = [];
+                    localStorage.setItem('cart', JSON.stringify(cart));
+                    updateCartCount();
+                    closeCart();
+                    showAlert(`Payment successful! Remaining balance: $${qrUsers[currentUser].balance}`, 'success');
                 } else {
-                    const video = document.createElement('video');
-                    video.controls = true;
-                    video.classList.add('generated-video');
-                    video.src = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-                    video.poster = `https://picsum.photos/${width}/${height}?random=${seed}`;
-                    video.style.maxWidth = '100%';
-                    outputArea.appendChild(video);
-
-                    const caption = document.createElement('p');
-                    caption.style.color = '#cbd5e0';
-                    caption.style.marginTop = '1rem';
-                    caption.style.fontStyle = 'italic';
-                    caption.innerText = `🎬 "${prompt}" (szimulált AI videó — bemutató videó)`;
-                    outputArea.appendChild(caption);
+                    showAlert('Insufficient balance! Please use cash payment.', 'error');
+                    showMapWithPickupPoints();
+                    cart = [];
+                    localStorage.setItem('cart', JSON.stringify(cart));
+                    updateCartCount();
+                    closeCart();
                 }
+            } else {
+                // Cash payment
+                showMapWithPickupPoints();
+                cart = [];
+                localStorage.setItem('cart', JSON.stringify(cart));
+                updateCartCount();
+                closeCart();
+                showAlert('Order placed! Please pay cash at pickup point.', 'success');
+            }
+        }
 
-                const note = document.createElement('div');
-                note.style.marginTop = '1rem';
-                note.style.fontSize = '0.8rem';
-                note.style.background = '#1f2937';
-                note.style.padding = '0.5rem 1rem';
-                note.style.borderRadius = '40px';
-                note.style.color = '#9ca3af';
-                note.innerHTML = '⚡ DEMO: valódi AI helyett mintatartalom. A rendszer felismeri az NSFW szavakat és blokkolja, ha nem owner/nsfw engedélyezett.';
-                outputArea.appendChild(note);
+        // Show map with pickup points
+        function showMapWithPickupPoints() {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="map-container">
+                    <div id="map"></div>
+                </div>
+                <div class="pickup-points">
+                    <h3>Available Pickup Points in Romania:</h3>
+                    <div class="pickup-points">
+                        ${pickupPoints.map(point => `
+                            <div class="pickup-point" onclick="focusOnPoint(${point.lat}, ${point.lng})">
+                                📍 ${point.name}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <button onclick="showProducts()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Back to Shop</button>
+            `;
+            
+            // Initialize map
+            if (map) {
+                map.remove();
+            }
+            map = L.map('map').setView([45.9432, 24.9668], 7);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Add markers for pickup points
+            pickupPoints.forEach(point => {
+                L.marker([point.lat, point.lng]).addTo(map)
+                    .bindPopup(`<b>${point.name}</b><br>Pick up your order here<br>Pay cash to owner`);
             });
+        }
 
+        function focusOnPoint(lat, lng) {
+            map.setView([lat, lng], 13);
+        }
+
+        // Owner functions
+        function showOwnerLogin() {
+            document.getElementById('owner-modal').style.display = 'block';
+        }
+
+        function closeOwnerModal() {
+            document.getElementById('owner-modal').style.display = 'none';
+        }
+
+        function ownerLogin() {
+            const email = document.getElementById('owner-email').value;
+            if (email === 'owner@webshop.com') { // Owner's hidden email
+                isOwner = true;
+                closeOwnerModal();
+                showProducts();
+                showAlert('Welcome Owner!', 'success');
+            } else {
+                showAlert('Invalid owner credentials!', 'error');
+            }
+        }
+
+        function addProduct() {
+            const name = document.getElementById('product-name').value;
+            const price = parseFloat(document.getElementById('product-price').value);
+            const image = document.getElementById('product-image').value || 'https://via.placeholder.com/200';
+            
+            if (name && price) {
+                const newProduct = {
+                    id: Date.now(),
+                    name,
+                    price,
+                    image
+                };
+                products.push(newProduct);
+                localStorage.setItem('products', JSON.stringify(products));
+                showProducts();
+                showAlert('Product added successfully!', 'success');
+            } else {
+                showAlert('Please fill all fields!', 'error');
+            }
+        }
+
+        // QR Code functions
+        function generateQRCode() {
+            const qrId = 'QR_' + Date.now();
+            activeQRs.push(qrId);
+            localStorage.setItem('activeQRs', JSON.stringify(activeQRs));
+            
+            // Initialize QR user with weekly $100
+            qrUsers[qrId] = {
+                balance: 100,
+                lastWeekly: Date.now()
+            };
+            localStorage.setItem('qrUsers', JSON.stringify(qrUsers));
+            
+            displayQRList();
+            showAlert(`QR Code generated: ${qrId}`, 'success');
+            
+            // Show QR code
+            const qrContainer = document.createElement('div');
+            qrContainer.innerHTML = `<h4>QR Code: ${qrId}</h4>`;
+            new QRCode(qrContainer, {
+                text: qrId,
+                width: 128,
+                height: 128
+            });
+            document.getElementById('qr-list').appendChild(qrContainer);
+        }
+
+        function displayQRList() {
+            const qrListDiv = document.getElementById('qr-list');
+            if (qrListDiv) {
+                qrListDiv.innerHTML = '<h4>Active QR Codes:</h4>';
+                activeQRs.forEach(qr => {
+                    qrListDiv.innerHTML += `<div>✓ ${qr}</div>`;
+                });
+            }
+        }
+
+        function showQRLogin() {
+            document.getElementById('qr-modal').style.display = 'block';
+            document.getElementById('qr-balance').style.display = 'none';
+            document.getElementById('qr-code-input').value = '';
+        }
+
+        function closeQRModal() {
+            document.getElementById('qr-modal').style.display = 'none';
             currentUser = null;
-            updateUI();
-        })();
+        }
+
+        function verifyQRCode() {
+            const qrCode = document.getElementById('qr-code-input').value;
+            if (activeQRs.includes(qrCode)) {
+                currentUser = qrCode;
+                const balance = qrUsers[qrCode] ? qrUsers[qrCode].balance : 0;
+                document.getElementById('user-balance').innerText = balance;
+                document.getElementById('qr-balance').style.display = 'block';
+                showAlert('QR Code verified successfully!', 'success');
+            } else {
+                showAlert('Invalid QR Code!', 'error');
+            }
+        }
+
+        function generateWeeklyQRBalance() {
+            // Add $100 to all QR users weekly
+            for (let qr in qrUsers) {
+                const lastWeek = qrUsers[qr].lastWeekly || 0;
+                if (Date.now() - lastWeek > 7 * 24 * 60 * 60 * 1000) {
+                    qrUsers[qr].balance = (qrUsers[qr].balance || 0) + 100;
+                    qrUsers[qr].lastWeekly = Date.now();
+                }
+            }
+            localStorage.setItem('qrUsers', JSON.stringify(qrUsers));
+        }
+
+        // Alert system
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = message;
+            document.body.appendChild(alert);
+            setTimeout(() => alert.remove(), 3000);
+        }
+
+        // Sample products
+        if (products.length === 0) {
+            products = [
+                { id: 1, name: "Premium T-Shirt", price: 29.99, image: "https://via.placeholder.com/200/667eea/ffffff?text=T-Shirt" },
+                { id: 2, name: "Designer Jeans", price: 79.99, image: "https://via.placeholder.com/200/764ba2/ffffff?text=Jeans" },
+                { id: 3, name: "Sport Shoes", price: 89.99, image: "https://via.placeholder.com/200/48bb78/ffffff?text=Shoes" },
+                { id: 4, name: "Leather Wallet", price: 39.99, image: "https://via.placeholder.com/200/f56565/ffffff?text=Wallet" }
+            ];
+            localStorage.setItem('products', JSON.stringify(products));
+        }
+
+        // Start the app
+        init();
     </script>
 </body>
 </html>
