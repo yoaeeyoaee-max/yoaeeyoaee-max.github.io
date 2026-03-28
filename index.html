@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Webshop - QR Code Scanner & Payment System</title>
+    <title>WebShop - QR Code Scanner & Payment System</title>
     <style>
         * {
             margin: 0;
@@ -73,6 +73,7 @@
             overflow: hidden;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             transition: transform 0.3s;
+            position: relative;
         }
 
         .product-card:hover {
@@ -83,6 +84,7 @@
             width: 100%;
             height: 200px;
             object-fit: cover;
+            background: #f0f0f0;
         }
 
         .product-info {
@@ -115,6 +117,29 @@
 
         .add-to-cart:hover {
             background: #5a67d8;
+        }
+
+        .delete-product {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+
+        .delete-product:hover {
+            transform: scale(1.1);
+            background: #e53e3e;
         }
 
         /* Modal */
@@ -199,14 +224,6 @@
             background: #e53e3e;
         }
 
-        .scanner-result {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #f0f0f0;
-            border-radius: 5px;
-            word-break: break-all;
-        }
-
         /* Cart Items */
         .cart-items {
             max-height: 400px;
@@ -252,6 +269,45 @@
             padding: 0.5rem;
             border: 1px solid #ddd;
             border-radius: 5px;
+        }
+
+        .image-preview {
+            margin-top: 0.5rem;
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 5px;
+        }
+
+        /* QR Code List */
+        .qr-item {
+            background: #f9f9f9;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .qr-code-display {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .delete-qr {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .delete-qr:hover {
+            background: #e53e3e;
         }
 
         /* Map */
@@ -476,12 +532,12 @@
     </div>
 
     <script>
-        // Data storage
-        let products = JSON.parse(localStorage.getItem('products')) || [];
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
-        let qrUsers = JSON.parse(localStorage.getItem('qrUsers')) || {};
-        let activeQRs = JSON.parse(localStorage.getItem('activeQRs')) || [];
-        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        // Global data with persistence
+        let products = [];
+        let cart = [];
+        let qrUsers = {};
+        let activeQRs = [];
+        let orders = [];
         let currentUser = null;
         let isOwner = false;
         let selectedPickupPoint = null;
@@ -492,6 +548,63 @@
         
         // Owner email (hidden)
         const OWNER_EMAIL = "owner@webshop.com";
+        
+        // Load data from localStorage (works across all browsers/tabs)
+        function loadData() {
+            products = JSON.parse(localStorage.getItem('products')) || [];
+            cart = JSON.parse(localStorage.getItem('cart')) || [];
+            qrUsers = JSON.parse(localStorage.getItem('qrUsers')) || {};
+            activeQRs = JSON.parse(localStorage.getItem('activeQRs')) || [];
+            orders = JSON.parse(localStorage.getItem('orders')) || [];
+            
+            // Initialize sample products if empty
+            if (products.length === 0) {
+                products = [
+                    { id: 1, name: "Premium T-Shirt", price: 29.99, image: "https://via.placeholder.com/200/667eea/ffffff?text=T-Shirt" },
+                    { id: 2, name: "Designer Jeans", price: 79.99, image: "https://via.placeholder.com/200/764ba2/ffffff?text=Jeans" },
+                    { id: 3, name: "Sport Shoes", price: 89.99, image: "https://via.placeholder.com/200/48bb78/ffffff?text=Shoes" },
+                    { id: 4, name: "Leather Wallet", price: 39.99, image: "https://via.placeholder.com/200/f56565/ffffff?text=Wallet" },
+                    { id: 5, name: "Backpack", price: 59.99, image: "https://via.placeholder.com/200/4299e1/ffffff?text=Backpack" }
+                ];
+                saveProducts();
+            }
+        }
+        
+        // Save functions for persistence
+        function saveProducts() {
+            localStorage.setItem('products', JSON.stringify(products));
+        }
+        
+        function saveCart() {
+            localStorage.setItem('cart', JSON.stringify(cart));
+        }
+        
+        function saveQRUsers() {
+            localStorage.setItem('qrUsers', JSON.stringify(qrUsers));
+        }
+        
+        function saveActiveQRs() {
+            localStorage.setItem('activeQRs', JSON.stringify(activeQRs));
+        }
+        
+        function saveOrders() {
+            localStorage.setItem('orders', JSON.stringify(orders));
+        }
+        
+        // Image upload handler
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imagePreview = document.getElementById('image-preview');
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    document.getElementById('product-image-base64').value = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
         
         // Pickup points in Romania
         let pickupPoints = [
@@ -507,10 +620,24 @@
 
         // Initialize
         function init() {
+            loadData();
             updateCartCount();
             showProducts();
             generateWeeklyQRBalance();
-            setInterval(generateWeeklyQRBalance, 7 * 24 * 60 * 60 * 1000); // Weekly update
+            setInterval(generateWeeklyQRBalance, 7 * 24 * 60 * 60 * 1000);
+            
+            // Listen for storage events to sync across tabs
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'products' || e.key === 'activeQRs' || e.key === 'qrUsers') {
+                    loadData();
+                    if (isOwner) {
+                        showProducts();
+                    } else {
+                        showProducts();
+                    }
+                    updateCartCount();
+                }
+            });
         }
 
         // QR Scanner Functions
@@ -531,7 +658,6 @@
                 html5QrCode.stop().then(() => {
                     startScannerWithConfig();
                 }).catch(err => {
-                    console.error("Error stopping scanner:", err);
                     startScannerWithConfig();
                 });
             } else {
@@ -551,17 +677,14 @@
                 { facingMode: "environment" },
                 config,
                 (decodedText, decodedResult) => {
-                    // QR Code successfully scanned
-                    console.log(`Scanned QR: ${decodedText}`);
                     handleQRCodeScanned(decodedText);
                 },
                 (errorMessage) => {
-                    // Scanning error, continue scanning
                     console.log(`Scan error: ${errorMessage}`);
                 }
             ).catch(err => {
                 console.error("Unable to start scanner:", err);
-                showAlert("Could not access camera. Please check permissions and try again.", "error");
+                showAlert("Could not access camera. Please check permissions.", "error");
                 showManualQRInput();
             });
             
@@ -571,7 +694,6 @@
         function stopScanner() {
             if (html5QrCode && isScanning) {
                 html5QrCode.stop().then(() => {
-                    console.log("Scanner stopped");
                     isScanning = false;
                 }).catch(err => {
                     console.error("Error stopping scanner:", err);
@@ -586,7 +708,6 @@
                 currentUser = qrCode;
                 const balance = qrUsers[qrCode] ? qrUsers[qrCode].balance : 0;
                 
-                // Show balance in modal
                 document.getElementById('qr-user-balance').innerText = balance;
                 document.getElementById('qr-balance-modal').style.display = 'block';
                 closeQRScannerModal();
@@ -594,7 +715,6 @@
                 showAlert(`QR Code verified! Balance: $${balance}`, 'success');
             } else {
                 showAlert('Invalid or inactive QR Code!', 'error');
-                // Show manual input option
                 showManualQRInput();
             }
         }
@@ -654,10 +774,12 @@
                             <input type="number" id="product-price">
                         </div>
                         <div class="form-group">
-                            <label>Image URL:</label>
-                            <input type="text" id="product-image" placeholder="https://via.placeholder.com/200">
+                            <label>Product Image:</label>
+                            <input type="file" id="product-image-file" accept="image/*" onchange="handleImageUpload(event)">
+                            <input type="hidden" id="product-image-base64">
+                            <img id="image-preview" class="image-preview" style="display: none; margin-top: 0.5rem;">
                         </div>
-                        <button onclick="addProduct()" style="padding: 0.5rem 1rem; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer;">➕ Add Product</button>
+                        <button onclick="addProductWithImage()" style="padding: 0.5rem 1rem; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer;">➕ Add Product</button>
                         
                         <h3 style="margin-top: 2rem;">🔑 Manage QR Codes</h3>
                         <button onclick="generateQRCode()" style="padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">🎫 Generate New QR Code</button>
@@ -666,6 +788,7 @@
                     <div class="products-grid">
                         ${products.map(product => `
                             <div class="product-card">
+                                <button class="delete-product" onclick="deleteProduct(${product.id})">×</button>
                                 <img src="${product.image}" class="product-image" onerror="this.src='https://via.placeholder.com/200'">
                                 <div class="product-info">
                                     <div class="product-title">${product.name}</div>
@@ -693,6 +816,50 @@
                         `).join('')}
                     </div>
                 `;
+            }
+        }
+        
+        // Delete product
+        function deleteProduct(productId) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                products = products.filter(p => p.id !== productId);
+                saveProducts();
+                showProducts();
+                showAlert('Product deleted successfully!', 'success');
+            }
+        }
+        
+        // Add product with image
+        function addProductWithImage() {
+            const name = document.getElementById('product-name').value;
+            const price = parseFloat(document.getElementById('product-price').value);
+            let image = document.getElementById('product-image-base64').value;
+            
+            if (!image) {
+                image = 'https://via.placeholder.com/200';
+            }
+            
+            if (name && price) {
+                const newProduct = {
+                    id: Date.now(),
+                    name,
+                    price,
+                    image
+                };
+                products.push(newProduct);
+                saveProducts();
+                
+                // Clear form
+                document.getElementById('product-name').value = '';
+                document.getElementById('product-price').value = '';
+                document.getElementById('product-image-file').value = '';
+                document.getElementById('product-image-base64').value = '';
+                document.getElementById('image-preview').style.display = 'none';
+                
+                showProducts();
+                showAlert('Product added successfully!', 'success');
+            } else {
+                showAlert('Please fill all fields!', 'error');
             }
         }
 
@@ -736,31 +903,24 @@
                 ordersDiv.innerHTML = '<p>No orders yet.</p>';
             }
         }
+        
+        // Delete QR code
+        function deleteQRCode(qrId) {
+            if (confirm('Are you sure you want to delete this QR code? The user will lose access to their balance.')) {
+                activeQRs = activeQRs.filter(qr => qr !== qrId);
+                delete qrUsers[qrId];
+                saveActiveQRs();
+                saveQRUsers();
+                displayQRList();
+                showAlert('QR Code deleted successfully!', 'success');
+            }
+        }
 
         // Send email notification to owner
         function sendOrderNotification(order) {
             console.log(`📧 EMAIL SENT TO ${OWNER_EMAIL}`);
             console.log(`Subject: New Order #${order.id} - ${order.status}`);
-            console.log(`Message: 
-                New order received!
-                
-                Order Details:
-                - Order ID: #${order.id}
-                - Date: ${new Date(order.date).toLocaleString()}
-                - Total Amount: $${order.total}
-                - Payment Method: ${order.paymentMethod}
-                - Status: ${order.status}
-                
-                Pickup Location:
-                - Name: ${order.pickupLocation.name}
-                - Address: ${order.pickupLocation.address}
-                - Coordinates: ${order.pickupLocation.lat}, ${order.pickupLocation.lng}
-                
-                Items:
-                ${order.items.map(item => `  - ${item.name}: $${item.price}`).join('\n')}
-                
-                Customer: ${order.customerInfo || 'Walk-in customer'}
-            `);
+            console.log(`Message: \nNew order received!\n\nOrder Details:\n- Order ID: #${order.id}\n- Date: ${new Date(order.date).toLocaleString()}\n- Total Amount: $${order.total}\n- Payment Method: ${order.paymentMethod}\n- Status: ${order.status}\n\nPickup Location:\n- Name: ${order.pickupLocation.name}\n- Address: ${order.pickupLocation.address}\n- Coordinates: ${order.pickupLocation.lat}, ${order.pickupLocation.lng}\n\nItems:\n${order.items.map(item => `  - ${item.name}: $${item.price}`).join('\n')}\n\nCustomer: ${order.customerInfo || 'Walk-in customer'}`);
             
             if (isOwner) {
                 showAlert(`📧 New order #${order.id} received! Check orders list.`, 'info');
@@ -775,7 +935,7 @@
             const product = products.find(p => p.id === productId);
             if (product) {
                 cart.push(product);
-                localStorage.setItem('cart', JSON.stringify(cart));
+                saveCart();
                 updateCartCount();
                 showAlert(`${product.name} added to cart!`, 'success');
             }
@@ -814,7 +974,7 @@
         // Remove from cart
         function removeFromCart(index) {
             cart.splice(index, 1);
-            localStorage.setItem('cart', JSON.stringify(cart));
+            saveCart();
             updateCartCount();
             showCart();
         }
@@ -903,7 +1063,7 @@
             if (currentUser && qrUsers[currentUser]) {
                 if (qrUsers[currentUser].balance >= total) {
                     qrUsers[currentUser].balance -= total;
-                    localStorage.setItem('qrUsers', JSON.stringify(qrUsers));
+                    saveQRUsers();
                     paymentMethod = 'QR Balance';
                     orderStatus = 'Paid';
                     customerInfo = `QR User: ${currentUser}`;
@@ -927,12 +1087,12 @@
             };
             
             orders.unshift(order);
-            localStorage.setItem('orders', JSON.stringify(orders));
+            saveOrders();
             
             sendOrderNotification(order);
             
             cart = [];
-            localStorage.setItem('cart', JSON.stringify(cart));
+            saveCart();
             updateCartCount();
             
             closePickupModal();
@@ -1001,54 +1161,41 @@
             }
         }
 
-        function addProduct() {
-            const name = document.getElementById('product-name').value;
-            const price = parseFloat(document.getElementById('product-price').value);
-            const image = document.getElementById('product-image').value || 'https://via.placeholder.com/200';
-            
-            if (name && price) {
-                const newProduct = {
-                    id: Date.now(),
-                    name,
-                    price,
-                    image
-                };
-                products.push(newProduct);
-                localStorage.setItem('products', JSON.stringify(products));
-                showProducts();
-                showAlert('Product added successfully!', 'success');
-            } else {
-                showAlert('Please fill all fields!', 'error');
-            }
-        }
-
         // QR Code functions
         function generateQRCode() {
-            const qrId = 'QR_' + Date.now();
+            const qrId = 'QR_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
             activeQRs.push(qrId);
-            localStorage.setItem('activeQRs', JSON.stringify(activeQRs));
+            saveActiveQRs();
             
             qrUsers[qrId] = {
                 balance: 100,
                 lastWeekly: Date.now()
             };
-            localStorage.setItem('qrUsers', JSON.stringify(qrUsers));
+            saveQRUsers();
             
             displayQRList();
             showAlert(`QR Code generated: ${qrId}`, 'success');
             
             const qrContainer = document.createElement('div');
-            qrContainer.style.marginTop = '1rem';
-            qrContainer.style.padding = '1rem';
-            qrContainer.style.background = 'white';
-            qrContainer.style.borderRadius = '5px';
-            qrContainer.innerHTML = `<strong>QR Code: ${qrId}</strong>`;
-            new QRCode(qrContainer, {
-                text: qrId,
-                width: 128,
-                height: 128
-            });
+            qrContainer.className = 'qr-item';
+            qrContainer.innerHTML = `
+                <div class="qr-code-display">
+                    <div>
+                        <strong>${qrId}</strong><br>
+                        <div id="qr-${qrId.replace(/[^a-zA-Z0-9]/g, '_')}"></div>
+                    </div>
+                    <button class="delete-qr" onclick="deleteQRCode('${qrId}')">Delete QR</button>
+                </div>
+            `;
+            
             document.getElementById('qr-list').appendChild(qrContainer);
+            
+            // Generate QR code image
+            new QRCode(document.getElementById(`qr-${qrId.replace(/[^a-zA-Z0-9]/g, '_')}`), {
+                text: qrId,
+                width: 100,
+                height: 100
+            });
         }
 
         function displayQRList() {
@@ -1056,7 +1203,25 @@
             if (qrListDiv) {
                 qrListDiv.innerHTML = '<h4>Active QR Codes:</h4>';
                 activeQRs.forEach(qr => {
-                    qrListDiv.innerHTML += `<div>✓ ${qr}</div>`;
+                    const qrContainer = document.createElement('div');
+                    qrContainer.className = 'qr-item';
+                    qrContainer.innerHTML = `
+                        <div class="qr-code-display">
+                            <div>
+                                <strong>${qr}</strong><br>
+                                <div id="qr-${qr.replace(/[^a-zA-Z0-9]/g, '_')}"></div>
+                            </div>
+                            <button class="delete-qr" onclick="deleteQRCode('${qr}')">Delete QR</button>
+                        </div>
+                    `;
+                    qrListDiv.appendChild(qrContainer);
+                    
+                    // Generate QR code image
+                    new QRCode(document.getElementById(`qr-${qr.replace(/[^a-zA-Z0-9]/g, '_')}`), {
+                        text: qr,
+                        width: 100,
+                        height: 100
+                    });
                 });
             }
         }
@@ -1069,7 +1234,7 @@
                     qrUsers[qr].lastWeekly = Date.now();
                 }
             }
-            localStorage.setItem('qrUsers', JSON.stringify(qrUsers));
+            saveQRUsers();
         }
 
         // Alert system
@@ -1079,18 +1244,6 @@
             alert.innerHTML = message;
             document.body.appendChild(alert);
             setTimeout(() => alert.remove(), 3000);
-        }
-
-        // Sample products
-        if (products.length === 0) {
-            products = [
-                { id: 1, name: "Premium T-Shirt", price: 29.99, image: "https://via.placeholder.com/200/667eea/ffffff?text=T-Shirt" },
-                { id: 2, name: "Designer Jeans", price: 79.99, image: "https://via.placeholder.com/200/764ba2/ffffff?text=Jeans" },
-                { id: 3, name: "Sport Shoes", price: 89.99, image: "https://via.placeholder.com/200/48bb78/ffffff?text=Shoes" },
-                { id: 4, name: "Leather Wallet", price: 39.99, image: "https://via.placeholder.com/200/f56565/ffffff?text=Wallet" },
-                { id: 5, name: "Backpack", price: 59.99, image: "https://via.placeholder.com/200/4299e1/ffffff?text=Backpack" }
-            ];
-            localStorage.setItem('products', JSON.stringify(products));
         }
 
         // Start the app
