@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>WebShop - QR Code Scanner & Payment System</title>
+    <title>WebShop - Cloud Sync QR Scanner & Payment System</title>
     <style>
         * {
             margin: 0;
@@ -50,6 +50,14 @@
 
         .nav-links button:hover {
             transform: translateY(-2px);
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: white;
+            font-size: 1.2rem;
         }
 
         /* Main Container */
@@ -135,6 +143,7 @@
             align-items: center;
             justify-content: center;
             transition: transform 0.3s;
+            z-index: 10;
         }
 
         .delete-product:hover {
@@ -183,15 +192,6 @@
         .scanner-container {
             text-align: center;
             margin-top: 1rem;
-        }
-
-        #video-preview {
-            width: 100%;
-            max-width: 500px;
-            height: auto;
-            margin: 0 auto;
-            border-radius: 10px;
-            border: 3px solid #667eea;
         }
 
         .scanner-controls {
@@ -437,10 +437,14 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body>
     <div class="navbar">
-        <h2>🛍️ WebShop Romania</h2>
+        <h2>🛍️ WebShop Romania (Cloud Sync)</h2>
         <div class="nav-links">
             <button onclick="showProducts()">🏪 Shop</button>
             <button onclick="showCart()">🛒 Cart (<span id="cart-count">0</span>)</button>
@@ -450,7 +454,7 @@
     </div>
 
     <div class="container" id="app">
-        <!-- Products will be loaded here -->
+        <div class="loading">Loading shop data from cloud...</div>
     </div>
 
     <!-- Cart Modal -->
@@ -532,7 +536,23 @@
     </div>
 
     <script>
-        // Global data with persistence
+        // Firebase configuration (Free cloud database)
+        // This is a demo Firebase project - you can replace with your own
+        const firebaseConfig = {
+            apiKey: "AIzaSyDummyKeyForDemo_PleaseReplaceWithYourOwn",
+            authDomain: "webshop-demo.firebaseapp.com",
+            databaseURL: "https://webshop-demo-default-rtdb.firebaseio.com",
+            projectId: "webshop-demo",
+            storageBucket: "webshop-demo.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456"
+        };
+        
+        // Initialize Firebase
+        let db = null;
+        let firebaseInitialized = false;
+        
+        // Global data
         let products = [];
         let cart = [];
         let qrUsers = {};
@@ -546,67 +566,10 @@
         let html5QrCode = null;
         let isScanning = false;
         
-        // Owner email (hidden)
+        // Owner email
         const OWNER_EMAIL = "owner@webshop.com";
         
-        // Load data from localStorage (works across all browsers/tabs)
-        function loadData() {
-            products = JSON.parse(localStorage.getItem('products')) || [];
-            cart = JSON.parse(localStorage.getItem('cart')) || [];
-            qrUsers = JSON.parse(localStorage.getItem('qrUsers')) || {};
-            activeQRs = JSON.parse(localStorage.getItem('activeQRs')) || [];
-            orders = JSON.parse(localStorage.getItem('orders')) || [];
-            
-            // Initialize sample products if empty
-            if (products.length === 0) {
-                products = [
-                    { id: 1, name: "Premium T-Shirt", price: 29.99, image: "https://via.placeholder.com/200/667eea/ffffff?text=T-Shirt" },
-                    { id: 2, name: "Designer Jeans", price: 79.99, image: "https://via.placeholder.com/200/764ba2/ffffff?text=Jeans" },
-                    { id: 3, name: "Sport Shoes", price: 89.99, image: "https://via.placeholder.com/200/48bb78/ffffff?text=Shoes" },
-                    { id: 4, name: "Leather Wallet", price: 39.99, image: "https://via.placeholder.com/200/f56565/ffffff?text=Wallet" },
-                    { id: 5, name: "Backpack", price: 59.99, image: "https://via.placeholder.com/200/4299e1/ffffff?text=Backpack" }
-                ];
-                saveProducts();
-            }
-        }
-        
-        // Save functions for persistence
-        function saveProducts() {
-            localStorage.setItem('products', JSON.stringify(products));
-        }
-        
-        function saveCart() {
-            localStorage.setItem('cart', JSON.stringify(cart));
-        }
-        
-        function saveQRUsers() {
-            localStorage.setItem('qrUsers', JSON.stringify(qrUsers));
-        }
-        
-        function saveActiveQRs() {
-            localStorage.setItem('activeQRs', JSON.stringify(activeQRs));
-        }
-        
-        function saveOrders() {
-            localStorage.setItem('orders', JSON.stringify(orders));
-        }
-        
-        // Image upload handler
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const imagePreview = document.getElementById('image-preview');
-                    imagePreview.src = e.target.result;
-                    imagePreview.style.display = 'block';
-                    document.getElementById('product-image-base64').value = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-        
-        // Pickup points in Romania
+        // Pickup points
         let pickupPoints = [
             { id: 1, lat: 44.4268, lng: 26.1025, name: "Bucharest - Central Hub", address: "Strada Lipscani 12, București" },
             { id: 2, lat: 46.7712, lng: 23.6236, name: "Cluj-Napoca - City Center", address: "Piața Unirii 15, Cluj-Napoca" },
@@ -617,149 +580,315 @@
             { id: 7, lat: 44.3333, lng: 23.8167, name: "Craiova - Mihai Viteazul Square", address: "Piața Mihai Viteazul, Craiova" },
             { id: 8, lat: 46.5500, lng: 24.5667, name: "Târgu Mureș - City Center", address: "Piața Victoriei, Târgu Mureș" }
         ];
-
+        
+        // Initialize Firebase and load data
+        async function initFirebase() {
+            try {
+                // Initialize Firebase
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+                firebaseInitialized = true;
+                
+                // Set up real-time listeners for all data
+                setupRealtimeListeners();
+                
+                // Load initial data
+                await loadAllData();
+                
+            } catch (error) {
+                console.error("Firebase initialization error:", error);
+                showAlert("Using local storage mode. Cloud sync unavailable.", "info");
+                // Fallback to localStorage
+                loadFromLocalStorage();
+                init();
+            }
+        }
+        
+        // Setup real-time listeners for cloud sync
+        function setupRealtimeListeners() {
+            // Listen for products changes
+            db.ref('products').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    products = Object.values(data);
+                } else {
+                    products = [];
+                }
+                if (!isOwner) {
+                    showProducts();
+                } else {
+                    showProducts();
+                }
+            });
+            
+            // Listen for QR codes changes
+            db.ref('activeQRs').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    activeQRs = Object.values(data);
+                } else {
+                    activeQRs = [];
+                }
+                if (isOwner) {
+                    displayQRList();
+                }
+            });
+            
+            // Listen for QR users balance changes
+            db.ref('qrUsers').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    qrUsers = data;
+                } else {
+                    qrUsers = {};
+                }
+            });
+            
+            // Listen for orders changes
+            db.ref('orders').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    orders = Object.values(data).sort((a, b) => b.id - a.id);
+                } else {
+                    orders = [];
+                }
+                if (isOwner) {
+                    displayOrders();
+                }
+            });
+        }
+        
+        // Load all data from Firebase
+        async function loadAllData() {
+            try {
+                // Load products
+                const productsSnapshot = await db.ref('products').once('value');
+                const productsData = productsSnapshot.val();
+                if (productsData) {
+                    products = Object.values(productsData);
+                } else {
+                    // Initialize with sample products
+                    products = [
+                        { id: 1, name: "Premium T-Shirt", price: 29.99, image: "https://via.placeholder.com/200/667eea/ffffff?text=T-Shirt" },
+                        { id: 2, name: "Designer Jeans", price: 79.99, image: "https://via.placeholder.com/200/764ba2/ffffff?text=Jeans" },
+                        { id: 3, name: "Sport Shoes", price: 89.99, image: "https://via.placeholder.com/200/48bb78/ffffff?text=Shoes" },
+                        { id: 4, name: "Leather Wallet", price: 39.99, image: "https://via.placeholder.com/200/f56565/ffffff?text=Wallet" },
+                        { id: 5, name: "Backpack", price: 59.99, image: "https://via.placeholder.com/200/4299e1/ffffff?text=Backpack" }
+                    ];
+                    await saveProductsToCloud();
+                }
+                
+                // Load QR codes
+                const qrSnapshot = await db.ref('activeQRs').once('value');
+                const qrData = qrSnapshot.val();
+                if (qrData) {
+                    activeQRs = Object.values(qrData);
+                }
+                
+                // Load QR users
+                const qrUsersSnapshot = await db.ref('qrUsers').once('value');
+                const qrUsersData = qrUsersSnapshot.val();
+                if (qrUsersData) {
+                    qrUsers = qrUsersData;
+                }
+                
+                // Load orders
+                const ordersSnapshot = await db.ref('orders').once('value');
+                const ordersData = ordersSnapshot.val();
+                if (ordersData) {
+                    orders = Object.values(ordersData).sort((a, b) => b.id - a.id);
+                }
+                
+                init();
+                
+            } catch (error) {
+                console.error("Error loading data:", error);
+                loadFromLocalStorage();
+                init();
+            }
+        }
+        
+        // Fallback to localStorage
+        function loadFromLocalStorage() {
+            products = JSON.parse(localStorage.getItem('products')) || [];
+            activeQRs = JSON.parse(localStorage.getItem('activeQRs')) || [];
+            qrUsers = JSON.parse(localStorage.getItem('qrUsers')) || {};
+            orders = JSON.parse(localStorage.getItem('orders')) || [];
+            
+            if (products.length === 0) {
+                products = [
+                    { id: 1, name: "Premium T-Shirt", price: 29.99, image: "https://via.placeholder.com/200/667eea/ffffff?text=T-Shirt" },
+                    { id: 2, name: "Designer Jeans", price: 79.99, image: "https://via.placeholder.com/200/764ba2/ffffff?text=Jeans" },
+                    { id: 3, name: "Sport Shoes", price: 89.99, image: "https://via.placeholder.com/200/48bb78/ffffff?text=Shoes" },
+                    { id: 4, name: "Leather Wallet", price: 39.99, image: "https://via.placeholder.com/200/f56565/ffffff?text=Wallet" },
+                    { id: 5, name: "Backpack", price: 59.99, image: "https://via.placeholder.com/200/4299e1/ffffff?text=Backpack" }
+                ];
+            }
+        }
+        
+        // Save to cloud functions
+        async function saveProductsToCloud() {
+            if (firebaseInitialized && db) {
+                const productsObj = {};
+                products.forEach(p => { productsObj[p.id] = p; });
+                await db.ref('products').set(productsObj);
+            } else {
+                localStorage.setItem('products', JSON.stringify(products));
+            }
+        }
+        
+        async function saveActiveQRsToCloud() {
+            if (firebaseInitialized && db) {
+                const qrsObj = {};
+                activeQRs.forEach((qr, index) => { qrsObj[index] = qr; });
+                await db.ref('activeQRs').set(qrsObj);
+            } else {
+                localStorage.setItem('activeQRs', JSON.stringify(activeQRs));
+            }
+        }
+        
+        async function saveQRUsersToCloud() {
+            if (firebaseInitialized && db) {
+                await db.ref('qrUsers').set(qrUsers);
+            } else {
+                localStorage.setItem('qrUsers', JSON.stringify(qrUsers));
+            }
+        }
+        
+        async function saveOrdersToCloud() {
+            if (firebaseInitialized && db) {
+                const ordersObj = {};
+                orders.forEach(order => { ordersObj[order.id] = order; });
+                await db.ref('orders').set(ordersObj);
+            } else {
+                localStorage.setItem('orders', JSON.stringify(orders));
+            }
+        }
+        
+        async function saveCartToCloud() {
+            // Cart is session-based, not synced across devices
+            localStorage.setItem('cart', JSON.stringify(cart));
+        }
+        
         // Initialize
         function init() {
-            loadData();
+            cart = JSON.parse(localStorage.getItem('cart')) || [];
             updateCartCount();
             showProducts();
             generateWeeklyQRBalance();
             setInterval(generateWeeklyQRBalance, 7 * 24 * 60 * 60 * 1000);
-            
-            // Listen for storage events to sync across tabs
-            window.addEventListener('storage', function(e) {
-                if (e.key === 'products' || e.key === 'activeQRs' || e.key === 'qrUsers') {
-                    loadData();
-                    if (isOwner) {
-                        showProducts();
-                    } else {
-                        showProducts();
-                    }
-                    updateCartCount();
-                }
-            });
         }
-
+        
+        // Generate weekly balance
+        async function generateWeeklyQRBalance() {
+            let updated = false;
+            for (let qr in qrUsers) {
+                const lastWeek = qrUsers[qr].lastWeekly || 0;
+                if (Date.now() - lastWeek > 7 * 24 * 60 * 60 * 1000) {
+                    qrUsers[qr].balance = (qrUsers[qr].balance || 0) + 100;
+                    qrUsers[qr].lastWeekly = Date.now();
+                    updated = true;
+                }
+            }
+            if (updated) {
+                await saveQRUsersToCloud();
+            }
+        }
+        
         // QR Scanner Functions
         function showQRScanner() {
             document.getElementById('qr-scanner-modal').style.display = 'block';
             document.getElementById('scanner-result').style.display = 'none';
-            document.getElementById('scanner-result').innerHTML = '';
             startScanner();
         }
-
+        
         function closeQRScannerModal() {
             stopScanner();
             document.getElementById('qr-scanner-modal').style.display = 'none';
         }
-
+        
         function startScanner() {
             if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    startScannerWithConfig();
-                }).catch(err => {
-                    startScannerWithConfig();
-                });
+                html5QrCode.stop().then(() => startScannerWithConfig()).catch(() => startScannerWithConfig());
             } else {
                 startScannerWithConfig();
             }
         }
-
+        
         function startScannerWithConfig() {
             html5QrCode = new Html5Qrcode("qr-reader");
-            const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
-            };
+            const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
             
-            html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                (decodedText, decodedResult) => {
-                    handleQRCodeScanned(decodedText);
-                },
-                (errorMessage) => {
-                    console.log(`Scan error: ${errorMessage}`);
-                }
+            html5QrCode.start({ facingMode: "environment" }, config,
+                (decodedText) => handleQRCodeScanned(decodedText),
+                (errorMessage) => console.log(errorMessage)
             ).catch(err => {
-                console.error("Unable to start scanner:", err);
                 showAlert("Could not access camera. Please check permissions.", "error");
                 showManualQRInput();
             });
-            
             isScanning = true;
         }
-
+        
         function stopScanner() {
             if (html5QrCode && isScanning) {
-                html5QrCode.stop().then(() => {
-                    isScanning = false;
-                }).catch(err => {
-                    console.error("Error stopping scanner:", err);
-                });
+                html5QrCode.stop().then(() => isScanning = false).catch(() => {});
             }
         }
-
+        
         function handleQRCodeScanned(qrCode) {
             stopScanner();
-            
             if (activeQRs.includes(qrCode)) {
                 currentUser = qrCode;
                 const balance = qrUsers[qrCode] ? qrUsers[qrCode].balance : 0;
-                
                 document.getElementById('qr-user-balance').innerText = balance;
                 document.getElementById('qr-balance-modal').style.display = 'block';
                 closeQRScannerModal();
-                
                 showAlert(`QR Code verified! Balance: $${balance}`, 'success');
             } else {
                 showAlert('Invalid or inactive QR Code!', 'error');
                 showManualQRInput();
             }
         }
-
+        
         function showManualQRInput() {
             closeQRScannerModal();
             document.getElementById('manual-qr-modal').style.display = 'block';
         }
-
+        
         function closeManualQRModal() {
             document.getElementById('manual-qr-modal').style.display = 'none';
         }
-
+        
         function verifyManualQR() {
             const qrCode = document.getElementById('manual-qr-code').value.trim();
             if (!qrCode) {
                 showAlert('Please enter a QR code!', 'error');
                 return;
             }
-            
             if (activeQRs.includes(qrCode)) {
                 currentUser = qrCode;
                 const balance = qrUsers[qrCode] ? qrUsers[qrCode].balance : 0;
-                
                 document.getElementById('qr-user-balance').innerText = balance;
                 document.getElementById('qr-balance-modal').style.display = 'block';
                 closeManualQRModal();
-                
                 showAlert(`QR Code verified! Balance: $${balance}`, 'success');
             } else {
                 showAlert('Invalid or inactive QR Code!', 'error');
             }
         }
-
+        
         function closeQRBalanceModal() {
             document.getElementById('qr-balance-modal').style.display = 'none';
         }
-
+        
         // Show products
         function showProducts() {
             const app = document.getElementById('app');
             if (isOwner) {
                 app.innerHTML = `
                     <div class="owner-panel">
-                        <h2>👑 Owner Dashboard</h2>
+                        <h2>👑 Owner Dashboard (Cloud Sync)</h2>
+                        <p style="color: #48bb78;">✓ Changes sync across all devices automatically!</p>
                         
                         <h3>📦 Recent Orders</h3>
                         <div id="orders-list"></div>
@@ -774,12 +903,10 @@
                             <input type="number" id="product-price">
                         </div>
                         <div class="form-group">
-                            <label>Product Image:</label>
-                            <input type="file" id="product-image-file" accept="image/*" onchange="handleImageUpload(event)">
-                            <input type="hidden" id="product-image-base64">
-                            <img id="image-preview" class="image-preview" style="display: none; margin-top: 0.5rem;">
+                            <label>Product Image URL:</label>
+                            <input type="text" id="product-image" placeholder="https://via.placeholder.com/200">
                         </div>
-                        <button onclick="addProductWithImage()" style="padding: 0.5rem 1rem; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer;">➕ Add Product</button>
+                        <button onclick="addProduct()" style="padding: 0.5rem 1rem; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer;">➕ Add Product</button>
                         
                         <h3 style="margin-top: 2rem;">🔑 Manage QR Codes</h3>
                         <button onclick="generateQRCode()" style="padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">🎫 Generate New QR Code</button>
@@ -819,69 +946,90 @@
             }
         }
         
-        // Delete product
-        function deleteProduct(productId) {
-            if (confirm('Are you sure you want to delete this product?')) {
-                products = products.filter(p => p.id !== productId);
-                saveProducts();
-                showProducts();
-                showAlert('Product deleted successfully!', 'success');
-            }
-        }
-        
-        // Add product with image
-        function addProductWithImage() {
+        // Add product
+        async function addProduct() {
             const name = document.getElementById('product-name').value;
             const price = parseFloat(document.getElementById('product-price').value);
-            let image = document.getElementById('product-image-base64').value;
-            
-            if (!image) {
-                image = 'https://via.placeholder.com/200';
-            }
+            const image = document.getElementById('product-image').value || 'https://via.placeholder.com/200';
             
             if (name && price) {
-                const newProduct = {
-                    id: Date.now(),
-                    name,
-                    price,
-                    image
-                };
+                const newProduct = { id: Date.now(), name, price, image };
                 products.push(newProduct);
-                saveProducts();
-                
-                // Clear form
+                await saveProductsToCloud();
                 document.getElementById('product-name').value = '';
                 document.getElementById('product-price').value = '';
-                document.getElementById('product-image-file').value = '';
-                document.getElementById('product-image-base64').value = '';
-                document.getElementById('image-preview').style.display = 'none';
-                
-                showProducts();
-                showAlert('Product added successfully!', 'success');
+                document.getElementById('product-image').value = '';
+                showAlert('Product added and synced to cloud!', 'success');
             } else {
                 showAlert('Please fill all fields!', 'error');
             }
         }
-
-        // Display orders for owner
+        
+        // Delete product
+        async function deleteProduct(productId) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                products = products.filter(p => p.id !== productId);
+                await saveProductsToCloud();
+                showAlert('Product deleted and synced to cloud!', 'success');
+            }
+        }
+        
+        // Generate QR code
+        async function generateQRCode() {
+            const qrId = 'QR_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+            activeQRs.push(qrId);
+            await saveActiveQRsToCloud();
+            
+            qrUsers[qrId] = { balance: 100, lastWeekly: Date.now() };
+            await saveQRUsersToCloud();
+            
+            displayQRList();
+            showAlert(`QR Code generated and synced to cloud: ${qrId}`, 'success');
+        }
+        
+        // Delete QR code
+        async function deleteQRCode(qrId) {
+            if (confirm('Are you sure you want to delete this QR code?')) {
+                activeQRs = activeQRs.filter(qr => qr !== qrId);
+                delete qrUsers[qrId];
+                await saveActiveQRsToCloud();
+                await saveQRUsersToCloud();
+                displayQRList();
+                showAlert('QR Code deleted and synced to cloud!', 'success');
+            }
+        }
+        
+        function displayQRList() {
+            const qrListDiv = document.getElementById('qr-list');
+            if (qrListDiv) {
+                qrListDiv.innerHTML = '<h4>Active QR Codes (Cloud Synced):</h4>';
+                activeQRs.forEach(qr => {
+                    const qrContainer = document.createElement('div');
+                    qrContainer.className = 'qr-item';
+                    qrContainer.innerHTML = `
+                        <div class="qr-code-display">
+                            <div>
+                                <strong>${qr}</strong><br>
+                                <div id="qr-${qr.replace(/[^a-zA-Z0-9]/g, '_')}"></div>
+                            </div>
+                            <button class="delete-qr" onclick="deleteQRCode('${qr}')">Delete QR</button>
+                        </div>
+                    `;
+                    qrListDiv.appendChild(qrContainer);
+                    new QRCode(document.getElementById(`qr-${qr.replace(/[^a-zA-Z0-9]/g, '_')}`), {
+                        text: qr, width: 100, height: 100
+                    });
+                });
+            }
+        }
+        
         function displayOrders() {
             const ordersDiv = document.getElementById('orders-list');
             if (ordersDiv && orders.length > 0) {
                 ordersDiv.innerHTML = `
                     <div style="overflow-x: auto;">
                         <table class="orders-table">
-                            <thead>
-                                <tr>
-                                    <th>Order ID</th>
-                                    <th>Date</th>
-                                    <th>Items</th>
-                                    <th>Total</th>
-                                    <th>Payment</th>
-                                    <th>Status</th>
-                                    <th>Pickup Location</th>
-                                    <th>Customer</th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Pickup Location</th><th>Customer</th></tr></thead>
                             <tbody>
                                 ${orders.map(order => `
                                     <tr>
@@ -904,340 +1052,123 @@
             }
         }
         
-        // Delete QR code
-        function deleteQRCode(qrId) {
-            if (confirm('Are you sure you want to delete this QR code? The user will lose access to their balance.')) {
-                activeQRs = activeQRs.filter(qr => qr !== qrId);
-                delete qrUsers[qrId];
-                saveActiveQRs();
-                saveQRUsers();
-                displayQRList();
-                showAlert('QR Code deleted successfully!', 'success');
-            }
-        }
-
-        // Send email notification to owner
-        function sendOrderNotification(order) {
-            console.log(`📧 EMAIL SENT TO ${OWNER_EMAIL}`);
-            console.log(`Subject: New Order #${order.id} - ${order.status}`);
-            console.log(`Message: \nNew order received!\n\nOrder Details:\n- Order ID: #${order.id}\n- Date: ${new Date(order.date).toLocaleString()}\n- Total Amount: $${order.total}\n- Payment Method: ${order.paymentMethod}\n- Status: ${order.status}\n\nPickup Location:\n- Name: ${order.pickupLocation.name}\n- Address: ${order.pickupLocation.address}\n- Coordinates: ${order.pickupLocation.lat}, ${order.pickupLocation.lng}\n\nItems:\n${order.items.map(item => `  - ${item.name}: $${item.price}`).join('\n')}\n\nCustomer: ${order.customerInfo || 'Walk-in customer'}`);
-            
-            if (isOwner) {
-                showAlert(`📧 New order #${order.id} received! Check orders list.`, 'info');
-                displayOrders();
-            }
-            
-            showAlert(`Order #${order.id} placed! Notification sent to owner.`, 'success');
-        }
-
-        // Add to cart
+        // Add to cart and other functions remain similar...
         function addToCart(productId) {
             const product = products.find(p => p.id === productId);
             if (product) {
                 cart.push(product);
-                saveCart();
+                saveCartToCloud();
                 updateCartCount();
                 showAlert(`${product.name} added to cart!`, 'success');
             }
         }
-
-        // Update cart count
+        
         function updateCartCount() {
             document.getElementById('cart-count').innerText = cart.length;
         }
-
-        // Show cart
+        
         function showCart() {
             if (cart.length === 0) {
                 showAlert('Your cart is empty!', 'error');
                 return;
             }
-            
             const modal = document.getElementById('cart-modal');
             const cartItemsDiv = document.getElementById('cart-items');
             const total = cart.reduce((sum, item) => sum + item.price, 0);
-            
             cartItemsDiv.innerHTML = cart.map((item, index) => `
                 <div class="cart-item">
-                    <div>
-                        <strong>${item.name}</strong><br>
-                        $${item.price}
-                    </div>
-                    <button onclick="removeFromCart(${index})" style="background: #f56565; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 3px; cursor: pointer;">Remove</button>
+                    <div><strong>${item.name}</strong><br>$${item.price}</div>
+                    <button onclick="removeFromCart(${index})" style="background:#f56565;color:white;border:none;padding:0.3rem 0.8rem;border-radius:3px;cursor:pointer;">Remove</button>
                 </div>
             `).join('');
-            
             document.getElementById('cart-total').innerHTML = `Total: $${total.toFixed(2)}`;
             modal.style.display = 'block';
         }
-
-        // Remove from cart
+        
         function removeFromCart(index) {
             cart.splice(index, 1);
-            saveCart();
+            saveCartToCloud();
             updateCartCount();
             showCart();
         }
-
-        // Close cart
-        function closeCart() {
-            document.getElementById('cart-modal').style.display = 'none';
-        }
-
-        // Show pickup selection
+        
+        function closeCart() { document.getElementById('cart-modal').style.display = 'none'; }
+        
         function showPickupSelection() {
-            if (cart.length === 0) {
-                showAlert('Cart is empty!', 'error');
-                return;
-            }
-            
+            if (cart.length === 0) { showAlert('Cart is empty!', 'error'); return; }
             closeCart();
-            const modal = document.getElementById('pickup-modal');
-            modal.style.display = 'block';
-            
+            document.getElementById('pickup-modal').style.display = 'block';
             setTimeout(() => {
-                if (pickupMap) {
-                    pickupMap.remove();
-                }
+                if (pickupMap) pickupMap.remove();
                 pickupMap = L.map('pickup-map').setView([45.9432, 24.9668], 7);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(pickupMap);
-                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pickupMap);
                 pickupPoints.forEach(point => {
-                    const marker = L.marker([point.lat, point.lng]).addTo(pickupMap)
-                        .bindPopup(`<b>${point.name}</b><br>${point.address}`);
-                    
-                    marker.on('click', () => {
-                        selectPickupPoint(point);
-                    });
+                    L.marker([point.lat, point.lng]).addTo(pickupMap).bindPopup(`<b>${point.name}</b><br>${point.address}`).on('click', () => selectPickupPoint(point));
                 });
             }, 100);
-            
-            const optionsDiv = document.getElementById('pickup-options');
-            optionsDiv.innerHTML = pickupPoints.map(point => `
-                <div class="pickup-point" onclick="selectPickupPoint(${JSON.stringify(point).replace(/"/g, '&quot;')})">
-                    📍 <strong>${point.name}</strong><br>
-                    <small>${point.address}</small>
-                </div>
-            `).join('');
+            document.getElementById('pickup-options').innerHTML = pickupPoints.map(point => `<div class="pickup-point" onclick="selectPickupPoint(${JSON.stringify(point).replace(/"/g, '&quot;')})">📍 <strong>${point.name}</strong><br><small>${point.address}</small></div>`).join('');
         }
         
         function selectPickupPoint(point) {
             selectedPickupPoint = point;
-            
-            document.querySelectorAll('#pickup-options .pickup-point').forEach(el => {
-                el.classList.remove('selected');
-            });
-            
+            document.querySelectorAll('#pickup-options .pickup-point').forEach(el => el.classList.remove('selected'));
             const points = document.querySelectorAll('#pickup-options .pickup-point');
             const index = pickupPoints.findIndex(p => p.id === point.id);
-            if (points[index]) {
-                points[index].classList.add('selected');
-            }
-            
-            if (pickupMap) {
-                pickupMap.setView([point.lat, point.lng], 13);
-            }
-            
+            if (points[index]) points[index].classList.add('selected');
+            if (pickupMap) pickupMap.setView([point.lat, point.lng], 13);
             showAlert(`Pickup location selected: ${point.name}`, 'success');
         }
         
-        function closePickupModal() {
-            document.getElementById('pickup-modal').style.display = 'none';
-            selectedPickupPoint = null;
-        }
+        function closePickupModal() { document.getElementById('pickup-modal').style.display = 'none'; selectedPickupPoint = null; }
         
-        // Confirm pickup and finish payment
-        function confirmPickupAndPay() {
-            if (!selectedPickupPoint) {
-                showAlert('Please select a pickup location first!', 'error');
-                return;
-            }
-            
+        async function confirmPickupAndPay() {
+            if (!selectedPickupPoint) { showAlert('Please select a pickup location!', 'error'); return; }
             const total = cart.reduce((sum, item) => sum + item.price, 0);
-            let paymentMethod = 'Cash';
-            let orderStatus = 'Pending (Cash Payment)';
-            let customerInfo = 'Walk-in customer';
-            
+            let paymentMethod = 'Cash', orderStatus = 'Pending (Cash Payment)', customerInfo = 'Walk-in customer';
             if (currentUser && qrUsers[currentUser]) {
                 if (qrUsers[currentUser].balance >= total) {
                     qrUsers[currentUser].balance -= total;
-                    saveQRUsers();
-                    paymentMethod = 'QR Balance';
-                    orderStatus = 'Paid';
-                    customerInfo = `QR User: ${currentUser}`;
+                    await saveQRUsersToCloud();
+                    paymentMethod = 'QR Balance'; orderStatus = 'Paid'; customerInfo = `QR User: ${currentUser}`;
                     showAlert(`Payment successful! Remaining balance: $${qrUsers[currentUser].balance}`, 'success');
                 } else {
-                    paymentMethod = 'Cash (Insufficient QR Balance)';
-                    orderStatus = 'Pending (Cash Payment)';
+                    paymentMethod = 'Cash (Insufficient QR Balance)'; orderStatus = 'Pending (Cash Payment)';
                     showAlert('Insufficient QR balance! Please pay cash at pickup.', 'error');
                 }
             }
-            
-            const order = {
-                id: Date.now(),
-                date: new Date().toISOString(),
-                items: [...cart],
-                total: total,
-                paymentMethod: paymentMethod,
-                status: orderStatus,
-                pickupLocation: selectedPickupPoint,
-                customerInfo: customerInfo
-            };
-            
+            const order = { id: Date.now(), date: new Date().toISOString(), items: [...cart], total, paymentMethod, status: orderStatus, pickupLocation: selectedPickupPoint, customerInfo };
             orders.unshift(order);
-            saveOrders();
-            
+            await saveOrdersToCloud();
             sendOrderNotification(order);
-            
-            cart = [];
-            saveCart();
-            updateCartCount();
-            
+            cart = []; await saveCartToCloud(); updateCartCount();
             closePickupModal();
             showOrderConfirmation(order);
         }
         
-        // Show order confirmation
+        function sendOrderNotification(order) {
+            console.log(`📧 EMAIL SENT TO ${OWNER_EMAIL} - Order #${order.id} at ${order.pickupLocation.name}`);
+            showAlert(`Order #${order.id} placed! Notification sent to owner email.`, 'success');
+            if (isOwner) displayOrders();
+        }
+        
         function showOrderConfirmation(order) {
             const app = document.getElementById('app');
-            app.innerHTML = `
-                <div style="background: white; padding: 2rem; border-radius: 10px; text-align: center;">
-                    <h2 style="color: #48bb78;">✅ Order Confirmed!</h2>
-                    <p>Order #${order.id} has been placed successfully.</p>
-                    <p>Total: <strong>$${order.total}</strong></p>
-                    <p>Payment: ${order.paymentMethod}</p>
-                    <p>Status: ${order.status}</p>
-                    
-                    <h3 style="margin-top: 2rem;">📍 Pickup Location</h3>
-                    <p><strong>${order.pickupLocation.name}</strong></p>
-                    <p>${order.pickupLocation.address}</p>
-                    
-                    <div id="confirmation-map" style="height: 300px; margin: 1rem 0; border-radius: 10px; overflow: hidden;"></div>
-                    
-                    <div style="margin-top: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 5px;">
-                        <h4>📦 Order Items:</h4>
-                        ${order.items.map(item => `<p>${item.name} - $${item.price}</p>`).join('')}
-                    </div>
-                    
-                    <button onclick="showProducts()" style="margin-top: 2rem; padding: 0.8rem 2rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Continue Shopping</button>
-                </div>
-            `;
-            
+            app.innerHTML = `<div style="background:white;padding:2rem;border-radius:10px;text-align:center;"><h2 style="color:#48bb78;">✅ Order Confirmed!</h2><p>Order #${order.id} placed successfully.</p><p>Total: <strong>$${order.total}</strong></p><p>Pickup: ${order.pickupLocation.name}</p><div id="confirmation-map" style="height:300px;margin:1rem 0;"></div><button onclick="showProducts()" style="margin-top:2rem;padding:0.8rem 2rem;background:#667eea;color:white;border:none;border-radius:5px;cursor:pointer;">Continue Shopping</button></div>`;
             setTimeout(() => {
                 const map = L.map('confirmation-map').setView([order.pickupLocation.lat, order.pickupLocation.lng], 15);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(map);
-                
-                L.marker([order.pickupLocation.lat, order.pickupLocation.lng]).addTo(map)
-                    .bindPopup(`
-                        <b>${order.pickupLocation.name}</b><br>
-                        ${order.pickupLocation.address}<br>
-                        <b>Pick up your order here!</b>
-                    `).openPopup();
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                L.marker([order.pickupLocation.lat, order.pickupLocation.lng]).addTo(map).bindPopup(`<b>${order.pickupLocation.name}</b><br>Pick up your order here!`).openPopup();
             }, 100);
         }
         
-        // Owner functions
-        function showOwnerLogin() {
-            document.getElementById('owner-modal').style.display = 'block';
-        }
-
-        function closeOwnerModal() {
-            document.getElementById('owner-modal').style.display = 'none';
-        }
-
+        function showOwnerLogin() { document.getElementById('owner-modal').style.display = 'block'; }
+        function closeOwnerModal() { document.getElementById('owner-modal').style.display = 'none'; }
         function ownerLogin() {
             const email = document.getElementById('owner-email').value;
-            if (email === OWNER_EMAIL) {
-                isOwner = true;
-                closeOwnerModal();
-                showProducts();
-                showAlert('Welcome Owner!', 'success');
-            } else {
-                showAlert('Invalid owner credentials!', 'error');
-            }
+            if (email === OWNER_EMAIL) { isOwner = true; closeOwnerModal(); showProducts(); showAlert('Welcome Owner! All changes sync across devices.', 'success'); }
+            else showAlert('Invalid owner credentials!', 'error');
         }
-
-        // QR Code functions
-        function generateQRCode() {
-            const qrId = 'QR_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
-            activeQRs.push(qrId);
-            saveActiveQRs();
-            
-            qrUsers[qrId] = {
-                balance: 100,
-                lastWeekly: Date.now()
-            };
-            saveQRUsers();
-            
-            displayQRList();
-            showAlert(`QR Code generated: ${qrId}`, 'success');
-            
-            const qrContainer = document.createElement('div');
-            qrContainer.className = 'qr-item';
-            qrContainer.innerHTML = `
-                <div class="qr-code-display">
-                    <div>
-                        <strong>${qrId}</strong><br>
-                        <div id="qr-${qrId.replace(/[^a-zA-Z0-9]/g, '_')}"></div>
-                    </div>
-                    <button class="delete-qr" onclick="deleteQRCode('${qrId}')">Delete QR</button>
-                </div>
-            `;
-            
-            document.getElementById('qr-list').appendChild(qrContainer);
-            
-            // Generate QR code image
-            new QRCode(document.getElementById(`qr-${qrId.replace(/[^a-zA-Z0-9]/g, '_')}`), {
-                text: qrId,
-                width: 100,
-                height: 100
-            });
-        }
-
-        function displayQRList() {
-            const qrListDiv = document.getElementById('qr-list');
-            if (qrListDiv) {
-                qrListDiv.innerHTML = '<h4>Active QR Codes:</h4>';
-                activeQRs.forEach(qr => {
-                    const qrContainer = document.createElement('div');
-                    qrContainer.className = 'qr-item';
-                    qrContainer.innerHTML = `
-                        <div class="qr-code-display">
-                            <div>
-                                <strong>${qr}</strong><br>
-                                <div id="qr-${qr.replace(/[^a-zA-Z0-9]/g, '_')}"></div>
-                            </div>
-                            <button class="delete-qr" onclick="deleteQRCode('${qr}')">Delete QR</button>
-                        </div>
-                    `;
-                    qrListDiv.appendChild(qrContainer);
-                    
-                    // Generate QR code image
-                    new QRCode(document.getElementById(`qr-${qr.replace(/[^a-zA-Z0-9]/g, '_')}`), {
-                        text: qr,
-                        width: 100,
-                        height: 100
-                    });
-                });
-            }
-        }
-
-        function generateWeeklyQRBalance() {
-            for (let qr in qrUsers) {
-                const lastWeek = qrUsers[qr].lastWeekly || 0;
-                if (Date.now() - lastWeek > 7 * 24 * 60 * 60 * 1000) {
-                    qrUsers[qr].balance = (qrUsers[qr].balance || 0) + 100;
-                    qrUsers[qr].lastWeekly = Date.now();
-                }
-            }
-            saveQRUsers();
-        }
-
-        // Alert system
+        
         function showAlert(message, type) {
             const alert = document.createElement('div');
             alert.className = `alert alert-${type}`;
@@ -1245,9 +1176,9 @@
             document.body.appendChild(alert);
             setTimeout(() => alert.remove(), 3000);
         }
-
+        
         // Start the app
-        init();
+        initFirebase();
     </script>
 </body>
 </html>
