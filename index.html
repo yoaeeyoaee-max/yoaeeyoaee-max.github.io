@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LUXE — Exkluzív Piactér</title>
+<title>ZenHub — Exclusive Marketplace</title>
 <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=EUR"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -115,22 +115,22 @@
 <body>
 
 <header>
-  <div class="logo" onclick="showPage('home')">LUXE<span>.</span></div>
+  <div class="logo" onclick="showPage('home')">ZenHub<span>.</span></div>
   <nav>
-    <button onclick="showPage('home')">Kollekció</button>
-    <button class="cart-btn" onclick="showPage('cart')">Kosár <span class="cart-count" id="cartCount">0</span></button>
-    <button id="authBtn" onclick="showPage('login')">Bejelentkezés</button>
+    <button onclick="showPage('home')">Collection</button>
+    <button class="cart-btn" onclick="showPage('cart')">Cart <span class="cart-count" id="cartCount">0</span></button>
+    <button id="authBtn" onclick="showPage('login')">Sign In</button>
     <button id="adminBtn" class="hidden" onclick="showPage('admin')">Admin</button>
-    <button id="logoutBtn" class="hidden" onclick="logout()">Kijelentkezés</button>
+    <button id="logoutBtn" class="hidden" onclick="logout()">Sign Out</button>
   </nav>
 </header>
 
-<main id="app"><div class="loading">BETÖLTÉS...</div></main>
+<main id="app"><div class="loading">LOADING...</div></main>
 <div class="toast" id="toast"></div>
 
 <script type="module">
 /* ============================================================
-   FIREBASE IMPORTOK
+   FIREBASE IMPORTS
    ============================================================ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
@@ -139,11 +139,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, getDocs, doc, updateDoc,
-  deleteDoc, serverTimestamp, setDoc, onSnapshot, getDoc, increment
+  deleteDoc, serverTimestamp, setDoc, onSnapshot, increment
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* ============================================================
-   ⚙️ KONFIGURÁCIÓ
+   ⚙️ CONFIGURATION
    ============================================================ */
 const firebaseConfig = {
   apiKey: "AIzaSyApbWHOrPtFR89OBOy6oupDe50b-KnAPRM",
@@ -155,12 +155,13 @@ const firebaseConfig = {
   measurementId: "G-6E5J5V3R7H"
 };
 
-const CLOUDINARY_CLOUD_NAME = "hello";   // ⬅️ ÍRD ÁT!
-const CLOUDINARY_PRESET     = "luxe_unsigned";        // ⬅️ amit létrehoztál
+const CLOUDINARY_CLOUD_NAME = "hello";   // ⬅️ CHANGE THIS!
+const CLOUDINARY_PRESET     = "luxe_unsigned";        // ⬅️ your preset name
+const ADMIN_EMAIL           = "yoaeeyoaee@gmail.com"; // ⬅️ admin email
 const IBAN = "RO82 REVO 0000 1313 6290 3124";
 
 /* ============================================================
-   INICIALIZÁLÁS
+   INIT
    ============================================================ */
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -169,12 +170,12 @@ const db = getFirestore(app);
 let currentUser = null;
 let isAdmin = false;
 let items = [];
-let cart = JSON.parse(localStorage.getItem('luxe_cart') || '[]');
+let cart = JSON.parse(localStorage.getItem('zenhub_cart') || '[]');
 let currentItem = null;
-let draftMedia = [];   // { type, url, name }
+let draftMedia = [];
 
 /* ============================================================
-   UI HELPEREK
+   UI HELPERS
    ============================================================ */
 window.toast = (msg) => {
   const t = document.getElementById('toast');
@@ -187,7 +188,7 @@ window.toast = (msg) => {
 const $ = (id) => document.getElementById(id);
 
 function formatPrice(p) {
-  return new Intl.NumberFormat('hu-HU').format(p) + ' €';
+  return new Intl.NumberFormat('en-US').format(p) + ' €';
 }
 
 function escapeHtml(s) {
@@ -200,7 +201,7 @@ function updateCartCount() {
 }
 
 function saveCart() {
-  localStorage.setItem('luxe_cart', JSON.stringify(cart));
+  localStorage.setItem('zenhub_cart', JSON.stringify(cart));
   updateCartCount();
 }
 
@@ -217,7 +218,7 @@ function updateNav() {
 }
 
 /* ============================================================
-   CLOUDINARY FELTÖLTÉS
+   CLOUDINARY UPLOAD
    ============================================================ */
 async function uploadToCloudinary(file) {
   const isVideo = file.type.startsWith('video');
@@ -226,7 +227,7 @@ async function uploadToCloudinary(file) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', CLOUDINARY_PRESET);
-  formData.append('folder', 'luxe-items');
+  formData.append('folder', 'zenhub-items');
 
   const res = await fetch(
     `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
@@ -235,8 +236,8 @@ async function uploadToCloudinary(file) {
 
   if (!res.ok) {
     const err = await res.text();
-    console.error('Cloudinary hiba:', err);
-    throw new Error('Feltöltés sikertelen');
+    console.error('Cloudinary error:', err);
+    throw new Error('Upload failed');
   }
 
   const data = await res.json();
@@ -244,7 +245,7 @@ async function uploadToCloudinary(file) {
 }
 
 /* ============================================================
-   ITEMEK VALÓS IDEJŰ BETÖLTÉSE
+   ITEMS REALTIME SUBSCRIPTION
    ============================================================ */
 function subscribeItems(callback) {
   return onSnapshot(collection(db, 'items'), (snap) => {
@@ -252,8 +253,8 @@ function subscribeItems(callback) {
     items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     if (callback) callback();
   }, (err) => {
-    console.error('Item betöltés hiba:', err);
-    toast('Hiba a termékek betöltésekor');
+    console.error('Items load error:', err);
+    toast('Error loading products');
   });
 }
 
@@ -281,13 +282,13 @@ function renderHome() {
   const app = $('app');
   let html = `
     <section class="hero">
-      <h1>LUXE</h1>
-      <p>— A kifinomult választás —</p>
+      <h1>ZenHub</h1>
+      <p>— The Refined Choice —</p>
     </section>
     <div class="container">`;
 
   if (items.length === 0) {
-    html += `<div class="empty">Jelenleg nincs elérhető termék.</div>`;
+    html += `<div class="empty">No products available at the moment.</div>`;
   } else {
     html += `<div class="grid">`;
     items.forEach(it => {
@@ -295,14 +296,14 @@ function renderHome() {
         ? (it.media[0].type === 'video'
             ? `<video src="${it.media[0].url}" muted></video>`
             : `<img src="${it.media[0].url}" alt="">`)
-        : `<div style="height:320px;background:#111;display:flex;align-items:center;justify-content:center;color:#444;">Nincs kép</div>`;
+        : `<div style="height:320px;background:#111;display:flex;align-items:center;justify-content:center;color:#444;">No image</div>`;
       html += `
         <div class="item-card" onclick="openItem('${it.id}')">
           ${cover}
           <div class="item-info">
             <h3>${escapeHtml(it.name)}</h3>
             <div class="price">${formatPrice(it.price)}</div>
-            <div class="stock">${it.stock > 0 ? 'Elérhető: ' + it.stock + ' db' : 'Elfogyott'}</div>
+            <div class="stock">${it.stock > 0 ? 'Available: ' + it.stock + ' pcs' : 'Sold out'}</div>
           </div>
         </div>`;
     });
@@ -331,10 +332,10 @@ window.openItem = (id) => {
         <h2 class="item-title">${escapeHtml(it.name)}</h2>
         <div class="item-price">${formatPrice(it.price)}</div>
         <p class="item-desc">${escapeHtml(it.description || '')}</p>
-        <p style="color:var(--muted);font-size:13px;">Készleten: ${it.stock} db</p>
+        <p style="color:var(--muted);font-size:13px;">In stock: ${it.stock} pcs</p>
         <div style="margin-top:25px;">
-          <button class="btn" onclick="addToCart('${it.id}')">Kosárba</button>
-          <button class="btn btn-primary" onclick="buyNow('${it.id}')">Fizetés</button>
+          <button class="btn" onclick="addToCart('${it.id}')">Add to Cart</button>
+          <button class="btn btn-primary" onclick="buyNow('${it.id}')">Pay</button>
         </div>
       </div>
     </div>`;
@@ -342,7 +343,7 @@ window.openItem = (id) => {
 };
 
 function renderMedia(m, big) {
-  if (!m) return `<div class="media-main" style="display:flex;align-items:center;justify-content:center;color:#444;">Nincs média</div>`;
+  if (!m) return `<div class="media-main" style="display:flex;align-items:center;justify-content:center;color:#444;">No media</div>`;
   if (m.type === 'video')
     return `<video class="${big ? 'media-main' : ''}" src="${m.url}" controls ${big ? '' : 'muted'}></video>`;
   return `<img class="${big ? 'media-main' : ''}" src="${m.url}" alt="">`;
@@ -359,33 +360,33 @@ window.closeModal = () => {
 };
 
 /* ============================================================
-   KOSÁR
+   CART
    ============================================================ */
 window.addToCart = (id, qty = 1) => {
   const it = items.find(x => x.id === id);
   if (!it) return;
-  if (it.stock < 1) { toast('Elfogyott'); return; }
+  if (it.stock < 1) { toast('Sold out'); return; }
   const ex = cart.find(c => c.id === id);
   if (ex) ex.qty += qty;
   else cart.push({ id, qty });
   saveCart();
-  toast('Kosárba helyezve');
+  toast('Added to cart');
   closeModal();
 };
 
 window.buyNow = (id) => {
   addToCart(id);
-  if (!currentUser) { toast('Jelentkezz be a fizetéshez'); showPage('login'); return; }
+  if (!currentUser) { toast('Please sign in to pay'); showPage('login'); return; }
   showPage('checkout');
 };
 
 function renderCart() {
   const app = $('app');
   if (cart.length === 0) {
-    app.innerHTML = `<div class="container"><h2 style="color:var(--gold);margin:40px 0;letter-spacing:5px;">KOSÁR</h2><div class="empty">A kosár üres.</div></div>`;
+    app.innerHTML = `<div class="container"><h2 style="color:var(--gold);margin:40px 0;letter-spacing:5px;">CART</h2><div class="empty">Your cart is empty.</div></div>`;
     return;
   }
-  let total = 0, html = `<div class="container"><h2 style="color:var(--gold);margin:40px 0;letter-spacing:5px;">KOSÁR</h2>`;
+  let total = 0, html = `<div class="container"><h2 style="color:var(--gold);margin:40px 0;letter-spacing:5px;">CART</h2>`;
   cart.forEach(c => {
     const it = items.find(x => x.id === c.id);
     if (!it) return;
@@ -397,13 +398,13 @@ function renderCart() {
           <strong style="color:var(--gold-light);">${escapeHtml(it.name)}</strong><br>
           <small>${formatPrice(it.price)} × ${c.qty} = ${formatPrice(sub)}</small>
         </div>
-        <button class="btn" onclick="removeFromCart('${it.id}')">Törlés</button>
+        <button class="btn" onclick="removeFromCart('${it.id}')">Remove</button>
       </div>`;
   });
   html += `
-    <div style="text-align:right;margin-top:30px;font-size:24px;color:var(--gold);">Összesen: ${formatPrice(total)}</div>
+    <div style="text-align:right;margin-top:30px;font-size:24px;color:var(--gold);">Total: ${formatPrice(total)}</div>
     <div style="text-align:right;margin-top:20px;">
-      <button class="btn btn-primary" onclick="goCheckout()">Tovább a fizetéshez</button>
+      <button class="btn btn-primary" onclick="goCheckout()">Proceed to Checkout</button>
     </div>
   </div>`;
   app.innerHTML = html;
@@ -416,7 +417,7 @@ window.removeFromCart = (id) => {
 };
 
 window.goCheckout = () => {
-  if (!currentUser) { toast('Jelentkezz be'); showPage('login'); return; }
+  if (!currentUser) { toast('Please sign in'); showPage('login'); return; }
   showPage('checkout');
 };
 
@@ -426,14 +427,14 @@ window.goCheckout = () => {
 function renderLogin() {
   $('app').innerHTML = `
     <div class="container" style="max-width:450px;margin-top:60px;">
-      <h2 style="color:var(--gold);text-align:center;letter-spacing:5px;margin-bottom:30px;">BEJELENTKEZÉS</h2>
+      <h2 style="color:var(--gold);text-align:center;letter-spacing:5px;margin-bottom:30px;">SIGN IN</h2>
       <label>Email</label>
-      <input type="email" id="loginEmail" placeholder="pelda@email.com">
-      <label>Jelszó</label>
+      <input type="email" id="loginEmail" placeholder="you@example.com">
+      <label>Password</label>
       <input type="password" id="loginPass" placeholder="••••••">
-      <button class="btn btn-primary btn-block" onclick="doLogin()">Belépés</button>
+      <button class="btn btn-primary btn-block" onclick="doLogin()">Sign In</button>
       <p style="text-align:center;margin-top:20px;color:var(--muted);font-size:13px;">
-        Nincs fiókja? <a href="#" style="color:var(--gold);" onclick="showPage('signup');return false;">Regisztráció</a>
+        No account? <a href="#" style="color:var(--gold);" onclick="showPage('signup');return false;">Sign Up</a>
       </p>
     </div>`;
 }
@@ -441,16 +442,16 @@ function renderLogin() {
 function renderSignup() {
   $('app').innerHTML = `
     <div class="container" style="max-width:450px;margin-top:60px;">
-      <h2 style="color:var(--gold);text-align:center;letter-spacing:5px;margin-bottom:30px;">REGISZTRÁCIÓ</h2>
+      <h2 style="color:var(--gold);text-align:center;letter-spacing:5px;margin-bottom:30px;">SIGN UP</h2>
       <label>Email</label>
-      <input type="email" id="signEmail" placeholder="pelda@email.com">
-      <label>Jelszó (min. 6 karakter)</label>
+      <input type="email" id="signEmail" placeholder="you@example.com">
+      <label>Password (min. 6 characters)</label>
       <input type="password" id="signPass" placeholder="••••••">
-      <label>Jelszó újra</label>
+      <label>Confirm Password</label>
       <input type="password" id="signPass2" placeholder="••••••">
-      <button class="btn btn-primary btn-block" onclick="doSignup()">Fiók létrehozása</button>
+      <button class="btn btn-primary btn-block" onclick="doSignup()">Create Account</button>
       <p style="text-align:center;margin-top:20px;color:var(--muted);font-size:13px;">
-        Van már fiókja? <a href="#" style="color:var(--gold);" onclick="showPage('login');return false;">Bejelentkezés</a>
+        Already have an account? <a href="#" style="color:var(--gold);" onclick="showPage('login');return false;">Sign In</a>
       </p>
     </div>`;
 }
@@ -460,16 +461,16 @@ function validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 window.doLogin = async () => {
   const email = $('loginEmail').value.trim();
   const pass = $('loginPass').value;
-  if (!email || !pass) { toast('Tölts ki minden mezőt'); return; }
+  if (!email || !pass) { toast('Please fill in all fields'); return; }
   try {
     await signInWithEmailAndPassword(auth, email, pass);
-    toast('Sikeres bejelentkezés');
+    toast('Signed in successfully');
     showPage('home');
   } catch (e) {
     console.error(e);
-    if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') toast('Hibás email vagy jelszó');
-    else if (e.code === 'auth/user-not-found') toast('Nincs ilyen fiók');
-    else toast('Hiba: ' + e.code);
+    if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') toast('Invalid email or password');
+    else if (e.code === 'auth/user-not-found') toast('No account with this email');
+    else toast('Error: ' + e.code);
   }
 };
 
@@ -477,27 +478,27 @@ window.doSignup = async () => {
   const email = $('signEmail').value.trim();
   const p1 = $('signPass').value;
   const p2 = $('signPass2').value;
-  if (!validEmail(email)) { toast('Érvénytelen email'); return; }
-  if (p1.length < 6) { toast('Legalább 6 karakter'); return; }
-  if (p1 !== p2) { toast('A jelszavak nem egyeznek'); return; }
+  if (!validEmail(email)) { toast('Invalid email address'); return; }
+  if (p1.length < 6) { toast('Password must be at least 6 characters'); return; }
+  if (p1 !== p2) { toast('Passwords do not match'); return; }
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, p1);
     await setDoc(doc(db, 'users', cred.user.uid), {
       email, createdAt: serverTimestamp()
     });
-    toast('Sikeres regisztráció');
+    toast('Account created');
     showPage('home');
   } catch (e) {
     console.error(e);
-    if (e.code === 'auth/email-already-in-use') toast('Ez az email már használatban van');
-    else if (e.code === 'auth/weak-password') toast('Gyenge jelszó');
-    else toast('Hiba: ' + e.code);
+    if (e.code === 'auth/email-already-in-use') toast('This email is already registered');
+    else if (e.code === 'auth/weak-password') toast('Password too weak');
+    else toast('Error: ' + e.code);
   }
 };
 
 window.logout = async () => {
   await signOut(auth);
-  toast('Kijelentkezve');
+  toast('Signed out');
   showPage('home');
 };
 
@@ -509,10 +510,10 @@ function renderAdmin() {
     <div class="admin-panel">
       <h2>ADMIN PANEL</h2>
       <div class="admin-tabs">
-        <button class="admin-tab active" onclick="switchTab('stats',this)">Áttekintés</button>
-        <button class="admin-tab" onclick="switchTab('items',this)">Termékek</button>
-        <button class="admin-tab" onclick="switchTab('add',this)">Új termék</button>
-        <button class="admin-tab" onclick="switchTab('orders',this)">Rendelések</button>
+        <button class="admin-tab active" onclick="switchTab('stats',this)">Overview</button>
+        <button class="admin-tab" onclick="switchTab('items',this)">Products</button>
+        <button class="admin-tab" onclick="switchTab('add',this)">New Product</button>
+        <button class="admin-tab" onclick="switchTab('orders',this)">Orders</button>
       </div>
       <div id="tab-stats" class="admin-section active"></div>
       <div id="tab-items" class="admin-section"></div>
@@ -539,16 +540,16 @@ async function renderStatsTab() {
   const totalStock = items.reduce((s, i) => s + (i.stock || 0), 0);
   $('tab-stats').innerHTML = `
     <div class="stat-grid">
-      <div class="stat-card"><div class="num">${orders.length}</div><div class="lbl">Rendelések</div></div>
-      <div class="stat-card"><div class="num">${formatPrice(totalRevenue)}</div><div class="lbl">Bevétel</div></div>
-      <div class="stat-card"><div class="num">${items.length}</div><div class="lbl">Termékek</div></div>
-      <div class="stat-card"><div class="num">${totalStock}</div><div class="lbl">Össz. készlet</div></div>
+      <div class="stat-card"><div class="num">${orders.length}</div><div class="lbl">Orders</div></div>
+      <div class="stat-card"><div class="num">${formatPrice(totalRevenue)}</div><div class="lbl">Revenue</div></div>
+      <div class="stat-card"><div class="num">${items.length}</div><div class="lbl">Products</div></div>
+      <div class="stat-card"><div class="num">${totalStock}</div><div class="lbl">Total Stock</div></div>
     </div>`;
 }
 
 function renderItemsTab() {
   if (items.length === 0) {
-    $('tab-items').innerHTML = `<div class="empty">Nincs termék.</div>`;
+    $('tab-items').innerHTML = `<div class="empty">No products.</div>`;
     return;
   }
   let html = '';
@@ -557,41 +558,41 @@ function renderItemsTab() {
       <div class="item-row">
         <div class="info">
           <strong style="color:var(--gold-light);">${escapeHtml(it.name)}</strong><br>
-          <small>${formatPrice(it.price)} • Készlet: ${it.stock} db • ${(it.links||[]).length} link</small>
+          <small>${formatPrice(it.price)} • Stock: ${it.stock} pcs • ${(it.links||[]).length} links</small>
         </div>
-        <button class="btn" onclick="deleteItem('${it.id}')">Törlés</button>
+        <button class="btn" onclick="deleteItem('${it.id}')">Delete</button>
       </div>`;
   });
   $('tab-items').innerHTML = html;
 }
 
 window.deleteItem = async (id) => {
-  if (!confirm('Biztosan törlöd ezt a terméket?')) return;
+  if (!confirm('Delete this product?')) return;
   try {
     await deleteDoc(doc(db, 'items', id));
-    toast('Törölve');
+    toast('Deleted');
   } catch (e) {
     console.error(e);
-    toast('Hiba a törléskor');
+    toast('Delete failed');
   }
 };
 
 function renderAddTab() {
   draftMedia = [];
   $('tab-add').innerHTML = `
-    <h3 style="color:var(--gold);margin-bottom:20px;letter-spacing:3px;">ÚJ TERMÉK</h3>
-    <label>Termék neve</label>
-    <input type="text" id="newName" placeholder="Pl. Luxus óra">
-    <label>Ár (€)</label>
+    <h3 style="color:var(--gold);margin-bottom:20px;letter-spacing:3px;">NEW PRODUCT</h3>
+    <label>Product Name</label>
+    <input type="text" id="newName" placeholder="e.g. Luxury Watch">
+    <label>Price (€)</label>
     <input type="number" id="newPrice" placeholder="5000" min="0">
-    <label>Készlet (db)</label>
+    <label>Stock (pcs)</label>
     <input type="number" id="newStock" placeholder="10" min="0">
-    <label>Leírás</label>
-    <textarea id="newDesc" rows="4" placeholder="Termék leírása..."></textarea>
+    <label>Description</label>
+    <textarea id="newDesc" rows="4" placeholder="Product description..."></textarea>
 
-    <label>Média (kép / videó)</label>
+    <label>Media (image / video)</label>
     <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-      Kattints ide kép vagy videó feltöltéséhez
+      Click here to upload image or video
     </div>
     <input type="file" id="fileInput" accept="image/*,video/*" multiple class="hidden" onchange="handleFiles(event)">
     <div class="preview-grid" id="previewGrid"></div>
@@ -605,7 +606,7 @@ window.handleFiles = async (e) => {
   if (!files.length) return;
   const zone = document.querySelector('.upload-zone');
   const oldText = zone.textContent;
-  zone.textContent = 'Feltöltés...';
+  zone.textContent = 'Uploading...';
 
   for (const file of files) {
     try {
@@ -613,7 +614,7 @@ window.handleFiles = async (e) => {
       draftMedia.push({ ...result, name: file.name });
     } catch (err) {
       console.error(err);
-      toast('Feltöltési hiba: ' + file.name);
+      toast('Upload failed: ' + file.name);
     }
   }
   zone.textContent = oldText;
@@ -645,21 +646,20 @@ window.publishItemStep1 = () => {
   const stock = parseInt($('newStock').value);
   const desc = $('newDesc').value.trim();
 
-  if (!name) { toast('Add meg a nevet'); return; }
-  if (isNaN(price) || price < 0) { toast('Érvényes árat adj meg'); return; }
-  if (isNaN(stock) || stock < 0) { toast('Érvényes készletet adj meg'); return; }
+  if (!name) { toast('Enter a name'); return; }
+  if (isNaN(price) || price < 0) { toast('Enter a valid price'); return; }
+  if (isNaN(stock) || stock < 0) { toast('Enter a valid stock'); return; }
 
-  // Step 2: linkek megadása
   $('tab-add').innerHTML = `
-    <h3 style="color:var(--gold);margin-bottom:20px;letter-spacing:3px;">LINK EK HOZZÁADÁSA</h3>
+    <h3 style="color:var(--gold);margin-bottom:20px;letter-spacing:3px;">ADD LINKS</h3>
     <p style="color:var(--muted);margin-bottom:20px;">
-      Add meg azokat a linkeket, amiket a vásárló kap. Egy vásárlásnál random választunk egyet.
-      Soronként egy link.
+      Enter the links the buyer will receive. One is chosen randomly per purchase.
+      One link per line.
     </p>
-    <label>Linkek (soronként egy)</label>
+    <label>Links (one per line)</label>
     <textarea id="newLinks" rows="6" placeholder="https://example.com/item1&#10;https://example.com/item2"></textarea>
-    <button class="btn" onclick="renderAddTab()">Vissza</button>
-    <button class="btn btn-primary" onclick="publishItemStep2('${escapeHtml(name)}', ${price}, ${stock}, '${escapeHtml(desc).replace(/'/g,"\\'")}')">Publish Item</button>
+    <button class="btn" onclick="renderAddTab()">Back</button>
+    <button class="btn btn-primary" onclick="publishItemStep2('${escapeHtml(name).replace(/'/g,"\\'")}', ${price}, ${stock}, '${escapeHtml(desc).replace(/'/g,"\\'")}')">Publish Item</button>
   `;
 };
 
@@ -667,7 +667,7 @@ window.publishItemStep2 = async (name, price, stock, desc) => {
   const linksText = $('newLinks').value;
   const links = linksText.split('\n').map(l => l.trim()).filter(l => l);
 
-  if (links.length === 0) { toast('Adj meg legalább egy linket'); return; }
+  if (links.length === 0) { toast('Add at least one link'); return; }
 
   try {
     await addDoc(collection(db, 'items'), {
@@ -676,12 +676,12 @@ window.publishItemStep2 = async (name, price, stock, desc) => {
       links,
       createdAt: serverTimestamp()
     });
-    toast('Termék publikálva!');
+    toast('Product published!');
     draftMedia = [];
     renderAdmin();
   } catch (e) {
     console.error(e);
-    toast('Hiba a mentéskor: ' + e.message);
+    toast('Save failed: ' + e.message);
   }
 };
 
@@ -691,21 +691,21 @@ async function renderOrdersTab() {
   orders.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
   if (orders.length === 0) {
-    $('tab-orders').innerHTML = `<div class="empty">Nincs rendelés.</div>`;
+    $('tab-orders').innerHTML = `<div class="empty">No orders.</div>`;
     return;
   }
 
   let html = '';
   orders.forEach(o => {
     const date = o.createdAt?.seconds
-      ? new Date(o.createdAt.seconds * 1000).toLocaleString('hu-HU')
+      ? new Date(o.createdAt.seconds * 1000).toLocaleString('en-US')
       : '—';
     html += `
       <div class="order-row" style="flex-direction:column;align-items:flex-start;">
         <div style="width:100%;">
           <strong style="color:var(--gold-light);">${o.email || '—'}</strong>
           <small style="float:right;">${date}</small><br>
-          <small>Összeg: ${formatPrice(o.total || 0)}</small><br>
+          <small>Amount: ${formatPrice(o.total || 0)}</small><br>
           <div style="margin-top:10px;">
             ${(o.lines||[]).map(l => `
               <div style="background:var(--dark-3);padding:10px;margin-bottom:8px;border-left:3px solid var(--gold);">
@@ -738,26 +738,25 @@ function renderCheckout() {
 
   $('app').innerHTML = `
     <div class="container" style="max-width:700px;margin-top:40px;">
-      <h2 style="color:var(--gold);letter-spacing:5px;margin-bottom:30px;">FIZETÉS</h2>
+      <h2 style="color:var(--gold);letter-spacing:5px;margin-bottom:30px;">CHECKOUT</h2>
       ${rows}
-      <div style="text-align:right;font-size:26px;color:var(--gold);margin:25px 0;">Összesen: ${formatPrice(total)}</div>
+      <div style="text-align:right;font-size:26px;color:var(--gold);margin:25px 0;">Total: ${formatPrice(total)}</div>
 
       <div class="payment-box">
-        <h3 style="color:var(--gold-light);margin-bottom:20px;font-size:16px;letter-spacing:3px;">FIZETÉSI MÓD</h3>
+        <h3 style="color:var(--gold-light);margin-bottom:20px;font-size:16px;letter-spacing:3px;">PAYMENT METHOD</h3>
         <p style="color:#bbb;font-size:14px;margin-bottom:20px;">
-          Az összeg PayPal-lal vagy banki átutalással fizethető.
+          Payment can be made via PayPal or bank transfer.
         </p>
         <div id="paypal-button-container"></div>
       </div>
 
       <div class="iban-box">
-        <h3 style="color:var(--gold);margin-bottom:15px;font-size:14px;letter-spacing:3px;">UTALÁSI ADATOK</h3>
-        <p style="color:#bbb;font-size:14px;">Banki átutalás esetén az összeg erre a számlára érkezik:</p>
+        <h3 style="color:var(--gold);margin-bottom:15px;font-size:14px;letter-spacing:3px;">BANK TRANSFER DETAILS</h3>
+        <p style="color:#bbb;font-size:14px;">For bank transfers, the amount should be sent to:</p>
         <p style="color:var(--gold-light);font-size:18px;letter-spacing:2px;margin-top:10px;font-family:monospace;">${IBAN}</p>
       </div>
     </div>`;
 
-  // PayPal gomb
   if (window.paypal) {
     paypal.Buttons({
       createOrder: (data, actions) => actions.order.create({
@@ -768,12 +767,12 @@ function renderCheckout() {
         await finalizeOrder(total, details.id);
       },
       onError: (err) => {
-        console.error('PayPal hiba:', err);
-        toast('PayPal hiba történt');
+        console.error('PayPal error:', err);
+        toast('PayPal error occurred');
       }
     }).render('#paypal-button-container');
   } else {
-    $('paypal-button-container').innerHTML = `<p style="color:#c00;">PayPal SDK nem töltődött be.</p>`;
+    $('paypal-button-container').innerHTML = `<p style="color:#c00;">PayPal SDK failed to load.</p>`;
   }
 }
 
@@ -785,9 +784,9 @@ async function finalizeOrder(total, paypalOrderId) {
     for (const c of cart) {
       const it = items.find(x => x.id === c.id);
       if (!it) continue;
-      if (it.stock < c.qty) { toast(`Nincs elég készlet: ${it.name}`); return; }
+      if (it.stock < c.qty) { toast(`Not enough stock: ${it.name}`); return; }
 
-      const links = it.links && it.links.length ? it.links : ['(nincs link)'];
+      const links = it.links && it.links.length ? it.links : ['(no link)'];
       const delivered = [];
       for (let i = 0; i < c.qty; i++) {
         delivered.push(links[Math.floor(Math.random() * links.length)]);
@@ -811,7 +810,6 @@ async function finalizeOrder(total, paypalOrderId) {
       createdAt: serverTimestamp()
     });
 
-    // Készlet csökkentése
     for (const u of updates) {
       await updateDoc(doc(db, 'items', u.id), { stock: increment(-u.qty) });
     }
@@ -821,7 +819,7 @@ async function finalizeOrder(total, paypalOrderId) {
     renderOrderSuccess({ id: orderRef.id, lines });
   } catch (e) {
     console.error(e);
-    toast('Hiba a rendelés mentésekor: ' + e.message);
+    toast('Order save failed: ' + e.message);
   }
 }
 
@@ -836,41 +834,31 @@ function renderOrderSuccess(order) {
 
   $('app').innerHTML = `
     <div class="container" style="max-width:700px;margin-top:60px;text-align:center;">
-      <h2 style="color:var(--gold);letter-spacing:5px;margin-bottom:20px;">KÖSZÖNJÜK A VÁSÁRLÁST</h2>
-      <p style="color:var(--muted);margin-bottom:30px;">Rendelés azonosító: <strong style="color:var(--gold-light);">${order.id}</strong></p>
+      <h2 style="color:var(--gold);letter-spacing:5px;margin-bottom:20px;">THANK YOU FOR YOUR PURCHASE</h2>
+      <p style="color:var(--muted);margin-bottom:30px;">Order ID: <strong style="color:var(--gold-light);">${order.id}</strong></p>
       <div style="text-align:left;margin-top:40px;">
-        <h3 style="color:var(--gold);letter-spacing:3px;margin-bottom:20px;">AZ ÖN LINKJEI</h3>
+        <h3 style="color:var(--gold);letter-spacing:3px;margin-bottom:20px;">YOUR LINKS</h3>
         ${linksHtml}
       </div>
-      <button class="btn btn-primary" style="margin-top:30px;" onclick="showPage('home')">Vissza a főoldalra</button>
+      <button class="btn btn-primary" style="margin-top:30px;" onclick="showPage('home')">Back to Home</button>
     </div>`;
 }
 
 /* ============================================================
-   AUTH ÁLLAPOT FIGYELÉSE
+   AUTH STATE LISTENER
    ============================================================ */
-onAuthStateChanged(auth, async (u) => {
+onAuthStateChanged(auth, (u) => {
   currentUser = u;
-  if (u) {
-    try {
-      const tokenResult = await u.getIdTokenResult();
-      isAdmin = tokenResult.claims.admin === true;
-    } catch (e) {
-      isAdmin = false;
-    }
-  } else {
-    isAdmin = false;
-  }
+  isAdmin = !!(u && u.email === ADMIN_EMAIL);
   updateNav();
 });
 
 /* ============================================================
-   INDÍTÁS
+   START
    ============================================================ */
 subscribeItems(() => {
-  // Ha épp a főoldalon vagyunk, újrarajzoljuk
   const appContent = $('app').innerHTML;
-  if (appContent.includes('LUXE') || appContent.includes('BETÖLTÉS') || appContent.includes('Nincs elérhető')) {
+  if (appContent.includes('ZenHub') || appContent.includes('LOADING') || appContent.includes('No products')) {
     showPage('home');
   }
 });
