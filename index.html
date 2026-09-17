@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZenHub — Exclusive Marketplace</title>
-<script src="https://www.paypal.com/sdk/js?client-id=sb&currency=EUR"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=BAAb1HRoILDLcqsPZHFAakoOS6gF22d4VoJDi_vEz_YrfIFPk943YChtcbW63h1BKlFG3lKJ6_G4cs1SWU&currency=EUR&components=buttons"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -97,8 +97,7 @@
   .hidden { display: none !important; }
   .loading { text-align: center; padding: 80px 20px; color: var(--gold); letter-spacing: 4px; }
 
-  .payment-box { background: var(--dark-2); border: 1px solid #333; padding: 25px; margin-bottom: 25px; }
-  .iban-box { background: var(--dark-2); border: 1px solid var(--gold); padding: 25px; margin-bottom: 25px; }
+  .payment-box { background: var(--dark-2); border: 1px solid var(--gold); padding: 40px; margin-bottom: 25px; text-align: center; }
 
   @media (max-width: 700px) {
     header { padding: 15px 20px; }
@@ -143,7 +142,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* ============================================================
-   ⚙️ CONFIGURATION
+   CONFIGURATION
    ============================================================ */
 const firebaseConfig = {
   apiKey: "AIzaSyApbWHOrPtFR89OBOy6oupDe50b-KnAPRM",
@@ -155,10 +154,9 @@ const firebaseConfig = {
   measurementId: "G-6E5J5V3R7H"
 };
 
-const CLOUDINARY_CLOUD_NAME = "hello";   // ⬅️ CHANGE THIS!
+const CLOUDINARY_CLOUD_NAME = "IDE_A_CLOUD_NEVED";   // ⬅️ CHANGE THIS!
 const CLOUDINARY_PRESET     = "luxe_unsigned";        // ⬅️ your preset name
 const ADMIN_EMAIL           = "yoaeeyoaee@gmail.com"; // ⬅️ admin email
-const IBAN = "RO82 REVO 0000 1313 6290 3124";
 
 /* ============================================================
    INIT
@@ -721,7 +719,7 @@ async function renderOrdersTab() {
 }
 
 /* ============================================================
-   CHECKOUT
+   CHECKOUT — ONLY PAYPAL, NO IBAN, NO DESCRIPTION
    ============================================================ */
 function renderCheckout() {
   if (!currentUser) { renderLogin(); return; }
@@ -743,25 +741,32 @@ function renderCheckout() {
       <div style="text-align:right;font-size:26px;color:var(--gold);margin:25px 0;">Total: ${formatPrice(total)}</div>
 
       <div class="payment-box">
-        <h3 style="color:var(--gold-light);margin-bottom:20px;font-size:16px;letter-spacing:3px;">PAYMENT METHOD</h3>
-        <p style="color:#bbb;font-size:14px;margin-bottom:20px;">
-          Payment can be made via PayPal or bank transfer.
-        </p>
+        <h3 style="color:var(--gold-light);margin-bottom:25px;font-size:16px;letter-spacing:3px;">PAY WITH PAYPAL</h3>
         <div id="paypal-button-container"></div>
-      </div>
-
-      <div class="iban-box">
-        <h3 style="color:var(--gold);margin-bottom:15px;font-size:14px;letter-spacing:3px;">BANK TRANSFER DETAILS</h3>
-        <p style="color:#bbb;font-size:14px;">For bank transfers, the amount should be sent to:</p>
-        <p style="color:var(--gold-light);font-size:18px;letter-spacing:2px;margin-top:10px;font-family:monospace;">${IBAN}</p>
+        <p style="color:var(--muted);font-size:12px;margin-top:20px;">Secure payment powered by PayPal</p>
       </div>
     </div>`;
 
   if (window.paypal) {
+    $('paypal-button-container').innerHTML = '';
+
     paypal.Buttons({
-      createOrder: (data, actions) => actions.order.create({
-        purchase_units: [{ amount: { value: total.toFixed(2), currency_code: 'EUR' } }]
-      }),
+      style: {
+        layout: 'vertical',
+        color: 'gold',
+        shape: 'rect',
+        label: 'paypal'
+      },
+      createOrder: (data, actions) => {
+        return actions.order.create({
+          purchase_units: [{
+            amount: {
+              value: total.toFixed(2),
+              currency_code: 'EUR'
+            }
+          }]
+        });
+      },
       onApprove: async (data, actions) => {
         const details = await actions.order.capture();
         await finalizeOrder(total, details.id);
@@ -769,10 +774,13 @@ function renderCheckout() {
       onError: (err) => {
         console.error('PayPal error:', err);
         toast('PayPal error occurred');
+      },
+      onCancel: () => {
+        toast('Payment cancelled');
       }
     }).render('#paypal-button-container');
   } else {
-    $('paypal-button-container').innerHTML = `<p style="color:#c00;">PayPal SDK failed to load.</p>`;
+    $('paypal-button-container').innerHTML = `<p style="color:#c00;">PayPal SDK failed to load. Please refresh the page.</p>`;
   }
 }
 
