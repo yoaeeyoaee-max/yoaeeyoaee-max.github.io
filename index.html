@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZenHub — Exclusive Marketplace</title>
-<script src="https://www.paypal.com/sdk/js?client-id=BAAb1HRoILDLcqsPZHFAakoOS6gF22d4VoJDi_vEz_YrfIFPk943YChtcbW63h1BKlFG3lKJ6_G4cs1SWU&currency=EUR&components=buttons"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=BAAb1HRoILDLcqsPZHFAakoOS6gF22d4VoJDi_vEz_YrfIFPk943YChtcbW63h1BKlFG3lKJ6_G4cs1SWU&currency=EUR&components=buttons&disable-funding=card"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -98,6 +98,9 @@
   .loading { text-align: center; padding: 80px 20px; color: var(--gold); letter-spacing: 4px; }
 
   .payment-box { background: var(--dark-2); border: 1px solid var(--gold); padding: 40px; margin-bottom: 25px; text-align: center; }
+  .disabled-method { background: var(--dark-3); border: 1px solid #333; padding: 16px; margin-top: 15px; text-align: center; opacity: 0.5; cursor: not-allowed; }
+  .disabled-method .label { color: var(--muted); font-size: 14px; letter-spacing: 2px; font-family: sans-serif; }
+  .disabled-method .note { color: #c00; font-size: 12px; margin-top: 5px; font-family: sans-serif; }
 
   @media (max-width: 700px) {
     header { padding: 15px 20px; }
@@ -154,9 +157,9 @@ const firebaseConfig = {
   measurementId: "G-6E5J5V3R7H"
 };
 
-const CLOUDINARY_CLOUD_NAME = "IDE_A_CLOUD_NEVED";   // ⬅️ CHANGE THIS!
-const CLOUDINARY_PRESET     = "luxe_unsigned";        // ⬅️ your preset name
-const ADMIN_EMAIL           = "yoaeeyoaee@gmail.com"; // ⬅️ admin email
+const CLOUDINARY_CLOUD_NAME = "Zen3Hub";   // ⬅️ CHANGE THIS!
+const CLOUDINARY_PRESET     = "luxe_unsigned";
+const ADMIN_EMAIL           = "yoaeeyoaee@gmail.com";
 
 /* ============================================================
    INIT
@@ -719,7 +722,7 @@ async function renderOrdersTab() {
 }
 
 /* ============================================================
-   CHECKOUT — ONLY PAYPAL, NO IBAN, NO DESCRIPTION
+   CHECKOUT — ONLY PAYPAL
    ============================================================ */
 function renderCheckout() {
   if (!currentUser) { renderLogin(); return; }
@@ -743,6 +746,12 @@ function renderCheckout() {
       <div class="payment-box">
         <h3 style="color:var(--gold-light);margin-bottom:25px;font-size:16px;letter-spacing:3px;">PAY WITH PAYPAL</h3>
         <div id="paypal-button-container"></div>
+
+        <div class="disabled-method">
+          <div class="label">💳 Debit or Credit Card</div>
+          <div class="note">(Not available)</div>
+        </div>
+
         <p style="color:var(--muted);font-size:12px;margin-top:20px;">Secure payment powered by PayPal</p>
       </div>
     </div>`;
@@ -784,8 +793,16 @@ function renderCheckout() {
   }
 }
 
+/* ============================================================
+   FINALIZE ORDER — FIXED: userId now included!
+   ============================================================ */
 async function finalizeOrder(total, paypalOrderId) {
   try {
+    if (!currentUser) {
+      toast('You must be signed in');
+      return;
+    }
+
     const lines = [];
     const updates = [];
 
@@ -809,8 +826,9 @@ async function finalizeOrder(total, paypalOrderId) {
       updates.push({ id: it.id, qty: c.qty });
     }
 
+    // ⚠️ A LÉNYEG: userId mező benne van!
     const orderRef = await addDoc(collection(db, 'orders'), {
-      userId: currentUser.uid,
+      userId: currentUser.uid,          // ⬅️ EZ KELL A SZABÁLYHOZ!
       email: currentUser.email,
       total,
       paypalOrderId,
@@ -818,6 +836,7 @@ async function finalizeOrder(total, paypalOrderId) {
       createdAt: serverTimestamp()
     });
 
+    // Készlet csökkentése
     for (const u of updates) {
       await updateDoc(doc(db, 'items', u.id), { stock: increment(-u.qty) });
     }
@@ -826,8 +845,8 @@ async function finalizeOrder(total, paypalOrderId) {
     saveCart();
     renderOrderSuccess({ id: orderRef.id, lines });
   } catch (e) {
-    console.error(e);
-    toast('Order save failed: ' + e.message);
+    console.error('Order save error:', e);
+    toast('Order save failed: ' + (e.message || e.code || 'unknown'));
   }
 }
 
