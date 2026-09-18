@@ -157,7 +157,7 @@ const firebaseConfig = {
   measurementId: "G-6E5J5V3R7H"
 };
 
-const CLOUDINARY_CLOUD_NAME = "euhvgvmp";   // ⬅️ CHANGE THIS!
+const CLOUDINARY_CLOUD_NAME = "euhvgvmp";           // ✅ JAVÍTVA
 const CLOUDINARY_PRESET     = "luxe_unsigned";
 const ADMIN_EMAIL           = "yoaeeyoaee@gmail.com";
 
@@ -174,6 +174,10 @@ let items = [];
 let cart = JSON.parse(localStorage.getItem('zenhub_cart') || '[]');
 let currentItem = null;
 let draftMedia = [];
+
+/* ⬇️⬇️⬇️ ÚJ: CHECKOUT USER MENTÉS ⬇️⬇️⬇️ */
+let checkoutUserUid = null;
+let checkoutUserEmail = null;
 
 /* ============================================================
    UI HELPERS
@@ -722,15 +726,17 @@ async function renderOrdersTab() {
 }
 
 /* ============================================================
-   CHECKOUT — JAVÍTOTT VERZIÓ
+   CHECKOUT
    ============================================================ */
 function renderCheckout() {
   if (!currentUser) { renderLogin(); return; }
   if (cart.length === 0) { renderCart(); return; }
 
-  // ⬇️ EZ A LÉNYEG: elmentjük a user adatait MÉG a rendereléskor!
-  const userUid   = currentUser.uid;
-  const userEmail = (currentUser.email || '').toLowerCase().trim();
+  /* ⬇️⬇️⬇️ ÚJ: ELMENTJÜK A USER ADATAIT MODUL SZINTŰ VÁLTOZÓKBA ⬇️⬇️⬇️ */
+  checkoutUserUid   = currentUser.uid;
+  checkoutUserEmail = (currentUser.email || '').toLowerCase().trim();
+
+  console.log("Checkout user mentve:", checkoutUserUid, checkoutUserEmail);
 
   let total = 0, rows = '';
   cart.forEach(c => {
@@ -772,8 +778,8 @@ function renderCheckout() {
       },
       onApprove: async (data, actions) => {
         const details = await actions.order.capture();
-        // ⬇️ ÁTADJUK A MENTETT USER ADATOKAT A finalizeOrder-nek
-        await finalizeOrder(total, details.id, userUid, userEmail);
+        /* ⬇️ A MENTETT VÁLTOZÓKAT HASZNÁLJUK, NEM A currentUser-t ⬇️ */
+        await finalizeOrder(total, details.id, checkoutUserUid, checkoutUserEmail);
       },
       onError: (err) => { console.error('PayPal error:', err); toast('PayPal error'); },
       onCancel: () => { toast('Payment cancelled'); }
@@ -784,10 +790,15 @@ function renderCheckout() {
 }
 
 /* ============================================================
-   FINALIZE ORDER — JAVÍTOTT VERZIÓ
+   FINALIZE ORDER
    ============================================================ */
 async function finalizeOrder(total, paypalOrderId, userUid, userEmail) {
   try {
+    console.log("=== FINALIZE ORDER ===");
+    console.log("userUid:", userUid);
+    console.log("userEmail:", userEmail);
+    console.log("auth.currentUser?.uid:", auth.currentUser?.uid);
+
     if (!userUid) { toast('You must be signed in'); return; }
 
     const lines = [];
@@ -809,12 +820,14 @@ async function finalizeOrder(total, paypalOrderId, userUid, userEmail) {
 
     const orderRef = await addDoc(collection(db, 'orders'), {
       userId: userUid,
-      email: userEmail,       // ⬅️ kisbetűsítve mentjük
+      email: userEmail,
       total,
       paypalOrderId,
       lines,
       createdAt: serverTimestamp()
     });
+
+    console.log("ORDER MENTVE:", orderRef.id);
 
     for (const u of updates) {
       await updateDoc(doc(db, 'items', u.id), { stock: increment(-u.qty) });
@@ -822,9 +835,12 @@ async function finalizeOrder(total, paypalOrderId, userUid, userEmail) {
 
     cart = [];
     saveCart();
+    checkoutUserUid = null;
+    checkoutUserEmail = null;
     renderOrderSuccess({ id: orderRef.id, lines });
   } catch (e) {
     console.error('Order save error:', e);
+    console.error('Error code:', e.code);
     toast('Order save failed: ' + (e.message || e.code || 'unknown'));
   }
 }
