@@ -157,7 +157,7 @@ const firebaseConfig = {
   measurementId: "G-6E5J5V3R7H"
 };
 
-const CLOUDINARY_CLOUD_NAME = "Zen3Hub";   // ⬅️ CHANGE THIS!
+const CLOUDINARY_CLOUD_NAME = "euhvgvmp";   // ⬅️ CHANGE THIS!
 const CLOUDINARY_PRESET     = "luxe_unsigned";
 const ADMIN_EMAIL           = "yoaeeyoaee@gmail.com";
 
@@ -722,11 +722,15 @@ async function renderOrdersTab() {
 }
 
 /* ============================================================
-   CHECKOUT — ONLY PAYPAL
+   CHECKOUT — JAVÍTOTT VERZIÓ
    ============================================================ */
 function renderCheckout() {
   if (!currentUser) { renderLogin(); return; }
   if (cart.length === 0) { renderCart(); return; }
+
+  // ⬇️ EZ A LÉNYEG: elmentjük a user adatait MÉG a rendereléskor!
+  const userUid   = currentUser.uid;
+  const userEmail = (currentUser.email || '').toLowerCase().trim();
 
   let total = 0, rows = '';
   cart.forEach(c => {
@@ -760,33 +764,19 @@ function renderCheckout() {
     $('paypal-button-container').innerHTML = '';
 
     paypal.Buttons({
-      style: {
-        layout: 'vertical',
-        color: 'gold',
-        shape: 'rect',
-        label: 'paypal'
-      },
+      style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
       createOrder: (data, actions) => {
         return actions.order.create({
-          purchase_units: [{
-            amount: {
-              value: total.toFixed(2),
-              currency_code: 'EUR'
-            }
-          }]
+          purchase_units: [{ amount: { value: total.toFixed(2), currency_code: 'EUR' } }]
         });
       },
       onApprove: async (data, actions) => {
         const details = await actions.order.capture();
-        await finalizeOrder(total, details.id);
+        // ⬇️ ÁTADJUK A MENTETT USER ADATOKAT A finalizeOrder-nek
+        await finalizeOrder(total, details.id, userUid, userEmail);
       },
-      onError: (err) => {
-        console.error('PayPal error:', err);
-        toast('PayPal error occurred');
-      },
-      onCancel: () => {
-        toast('Payment cancelled');
-      }
+      onError: (err) => { console.error('PayPal error:', err); toast('PayPal error'); },
+      onCancel: () => { toast('Payment cancelled'); }
     }).render('#paypal-button-container');
   } else {
     $('paypal-button-container').innerHTML = `<p style="color:#c00;">PayPal SDK failed to load. Please refresh the page.</p>`;
@@ -794,14 +784,11 @@ function renderCheckout() {
 }
 
 /* ============================================================
-   FINALIZE ORDER — FIXED: userId now included!
+   FINALIZE ORDER — JAVÍTOTT VERZIÓ
    ============================================================ */
-async function finalizeOrder(total, paypalOrderId) {
+async function finalizeOrder(total, paypalOrderId, userUid, userEmail) {
   try {
-    if (!currentUser) {
-      toast('You must be signed in');
-      return;
-    }
+    if (!userUid) { toast('You must be signed in'); return; }
 
     const lines = [];
     const updates = [];
@@ -816,27 +803,19 @@ async function finalizeOrder(total, paypalOrderId) {
       for (let i = 0; i < c.qty; i++) {
         delivered.push(links[Math.floor(Math.random() * links.length)]);
       }
-      lines.push({
-        itemId: it.id,
-        name: it.name,
-        price: it.price,
-        qty: c.qty,
-        links: delivered
-      });
+      lines.push({ itemId: it.id, name: it.name, price: it.price, qty: c.qty, links: delivered });
       updates.push({ id: it.id, qty: c.qty });
     }
 
-    // ⚠️ A LÉNYEG: userId mező benne van!
     const orderRef = await addDoc(collection(db, 'orders'), {
-      userId: currentUser.uid,          // ⬅️ EZ KELL A SZABÁLYHOZ!
-      email: currentUser.email,
+      userId: userUid,
+      email: userEmail,       // ⬅️ kisbetűsítve mentjük
       total,
       paypalOrderId,
       lines,
       createdAt: serverTimestamp()
     });
 
-    // Készlet csökkentése
     for (const u of updates) {
       await updateDoc(doc(db, 'items', u.id), { stock: increment(-u.qty) });
     }
@@ -876,7 +855,7 @@ function renderOrderSuccess(order) {
    ============================================================ */
 onAuthStateChanged(auth, (u) => {
   currentUser = u;
-  isAdmin = !!(u && u.email === ADMIN_EMAIL);
+  isAdmin = !!(u && u.email && u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
   updateNav();
 });
 
